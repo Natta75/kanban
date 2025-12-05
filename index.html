@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Kanban Board</h1>
+        <p class="subtitle">Управляйте своими задачами эффективно</p>
+    </header>
+
+    <main class="board-container">
+        <div class="column" data-column-id="todo">
+            <div class="column-header">
+                <h2>To Do</h2>
+                <span class="card-count">0</span>
+            </div>
+            <div class="cards-container" id="todo-cards"></div>
+            <button class="add-card-btn" data-column-id="todo">
+                <span>+</span> Добавить карточку
+            </button>
+        </div>
+
+        <div class="column" data-column-id="inProgress">
+            <div class="column-header">
+                <h2>In Progress</h2>
+                <span class="card-count">0</span>
+            </div>
+            <div class="cards-container" id="inProgress-cards"></div>
+            <button class="add-card-btn" data-column-id="inProgress">
+                <span>+</span> Добавить карточку
+            </button>
+        </div>
+
+        <div class="column" data-column-id="done">
+            <div class="column-header">
+                <h2>Done</h2>
+                <span class="card-count">0</span>
+            </div>
+            <div class="cards-container" id="done-cards"></div>
+            <button class="add-card-btn" data-column-id="done">
+                <span>+</span> Добавить карточку
+            </button>
+        </div>
+    </main>
+
+    <!-- Модальное окно для создания/редактирования карточки -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">Новая задача</h2>
+                <button class="close-btn" id="close-modal" aria-label="Закрыть">&times;</button>
+            </div>
+            <form id="card-form">
+                <div class="form-group">
+                    <label for="card-title">Название задачи *</label>
+                    <input
+                        type="text"
+                        id="card-title"
+                        name="title"
+                        placeholder="Введите название задачи"
+                        required
+                        maxlength="100"
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="card-description">Описание</label>
+                    <textarea
+                        id="card-description"
+                        name="description"
+                        placeholder="Добавьте описание (опционально)"
+                        rows="4"
+                        maxlength="500"
+                    ></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" id="cancel-btn">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
