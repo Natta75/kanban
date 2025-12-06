@@ -325,12 +325,14 @@ function renderBoard() {
         renderColumn(columnId);
     });
 
-    // Переинициализировать drag & drop после рендеринга
+    // Переинициализировать drag & drop ТОЛЬКО если еще не инициализирован
     if (typeof DragDropComponent !== 'undefined' && state.user) {
-        // Небольшая задержка, чтобы DOM успел обновиться
-        setTimeout(() => {
-            DragDropComponent.reinitialize();
-        }, 50);
+        if (DragDropComponent.sortableInstances.length === 0) {
+            // Небольшая задержка, чтобы DOM успел обновиться
+            setTimeout(() => {
+                DragDropComponent.reinitialize();
+            }, 50);
+        }
     }
 }
 
@@ -602,8 +604,13 @@ function setupRealtimeSubscription() {
                 }
                 renderColumn(updatedCard.column_id);
                 updateCardCount(updatedCard.column_id);
-                // Обновить уведомления
-                NotificationsComponent.checkDeadlines(state.cards);
+                // Обновить только banner уведомлений (без Browser notification)
+                const urgentCards = NotificationsComponent.getUrgentCards(state.cards);
+                if (urgentCards.length > 0) {
+                    NotificationsComponent.updateNotificationBanner(urgentCards);
+                } else {
+                    NotificationsComponent.hideNotificationBanner();
+                }
             }
         },
         onDelete: (deletedCard) => {

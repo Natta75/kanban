@@ -13,6 +13,10 @@ const NotificationsComponent = {
     // Разрешение на Browser Notifications
     notificationsEnabled: false,
 
+    // Время последнего показа Browser notification (для throttle)
+    lastNotificationTime: 0,
+    notificationThrottleMs: 600000, // 10 минут между Browser notifications
+
     /**
      * Инициализация компонента уведомлений
      */
@@ -117,13 +121,22 @@ const NotificationsComponent = {
     },
 
     /**
-     * Показать Browser Notification
+     * Показать Browser Notification (с throttle - не чаще раз в 10 минут)
      * @param {Array} urgentCards - Срочные карточки
      */
     showNotification(urgentCards) {
         if (!this.notificationsEnabled || urgentCards.length === 0) {
             return;
         }
+
+        // Throttle: не показывать чаще чем раз в 10 минут
+        const now = Date.now();
+        if (now - this.lastNotificationTime < this.notificationThrottleMs) {
+            console.log('📢 Browser notification пропущено (throttle)');
+            return;
+        }
+
+        this.lastNotificationTime = now;
 
         const overdueCount = urgentCards.filter(card => DateUtils.isOverdue(card.end_date)).length;
         const approachingCount = urgentCards.length - overdueCount;
