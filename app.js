@@ -75,7 +75,7 @@ function loadFromStorage() {
 // CARD CRUD OPERATIONS (через Supabase)
 // ============================================================
 
-async function addCard(columnId, title, description) {
+async function addCard(columnId, title, description, priority, startDate, endDate) {
     console.log('addCard called, state.user:', state.user);
 
     if (!state.user) {
@@ -88,7 +88,9 @@ async function addCard(columnId, title, description) {
         title: title.trim(),
         description: description.trim(),
         column_id: columnId,
-        priority: 'medium'
+        priority: priority || 'medium',
+        start_date: startDate || new Date().toISOString(),
+        end_date: endDate || null
     });
 
     if (error) {
@@ -104,16 +106,23 @@ async function addCard(columnId, title, description) {
     updateCardCount(columnId);
 }
 
-async function updateCard(cardId, title, description) {
+async function updateCard(cardId, title, description, priority, startDate, endDate) {
     if (!state.user) {
         alert('Необходима авторизация');
         return;
     }
 
-    const { data, error } = await CardService.updateCard(cardId, {
+    const updates = {
         title: title.trim(),
-        description: description.trim()
-    });
+        description: description.trim(),
+        priority: priority || 'medium'
+    };
+
+    // Добавляем даты только если они заданы
+    if (startDate) updates.start_date = startDate;
+    if (endDate) updates.end_date = endDate;
+
+    const { data, error } = await CardService.updateCard(cardId, updates);
 
     if (error) {
         console.error('Ошибка обновления карточки:', error);
@@ -220,6 +229,17 @@ function createCardElement(card) {
     cardDiv.className = 'card';
     cardDiv.dataset.cardId = card.id;
 
+    // Добавить класс приоритета для цветной границы
+    if (card.priority) {
+        cardDiv.classList.add(`priority-${card.priority}`);
+    }
+
+    // Добавить класс для статуса дедлайна
+    const deadlineClass = DateUtils.getDeadlineClass(card.end_date);
+    if (deadlineClass) {
+        cardDiv.classList.add(deadlineClass);
+    }
+
     const titleDiv = document.createElement('div');
     titleDiv.className = 'card-title';
     titleDiv.textContent = card.title;
@@ -227,6 +247,33 @@ function createCardElement(card) {
     const descriptionDiv = document.createElement('div');
     descriptionDiv.className = 'card-description';
     descriptionDiv.textContent = card.description;
+
+    // Метаданные карточки (приоритет и даты)
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'card-meta';
+
+    // Приоритет
+    if (card.priority) {
+        const priorityBadge = document.createElement('span');
+        priorityBadge.className = `card-priority-badge priority-${card.priority}`;
+        const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий' };
+        priorityBadge.textContent = priorityLabels[card.priority] || card.priority;
+        metaDiv.appendChild(priorityBadge);
+    }
+
+    // Дата окончания
+    if (card.end_date) {
+        const deadlineDiv = document.createElement('div');
+        deadlineDiv.className = 'card-deadline';
+        const deadlineClass = DateUtils.getDeadlineClass(card.end_date);
+        if (deadlineClass) {
+            deadlineDiv.classList.add(deadlineClass);
+        }
+        const icon = DateUtils.getDateIcon(card.end_date);
+        const status = DateUtils.getDeadlineStatus(card.end_date);
+        deadlineDiv.textContent = `${icon} ${status}`;
+        metaDiv.appendChild(deadlineDiv);
+    }
 
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'card-actions';
@@ -268,6 +315,7 @@ function createCardElement(card) {
 
     cardDiv.appendChild(titleDiv);
     cardDiv.appendChild(descriptionDiv);
+    cardDiv.appendChild(metaDiv);
     cardDiv.appendChild(actionsDiv);
 
     return cardDiv;
@@ -304,10 +352,16 @@ function openAddModal(columnId) {
     const form = document.getElementById('card-form');
     const titleInput = document.getElementById('card-title');
     const descriptionInput = document.getElementById('card-description');
+    const priorityInput = document.getElementById('card-priority');
+    const startDateInput = document.getElementById('card-start-date');
+    const endDateInput = document.getElementById('card-end-date');
 
     modalTitle.textContent = 'Новая задача';
     titleInput.value = '';
     descriptionInput.value = '';
+    priorityInput.value = 'medium';
+    startDateInput.value = DateUtils.getTodayForInput();
+    endDateInput.value = '';
 
     modal.classList.remove('hidden');
     titleInput.focus();
@@ -324,10 +378,16 @@ function openEditModal(cardId) {
     const modalTitle = document.getElementById('modal-title');
     const titleInput = document.getElementById('card-title');
     const descriptionInput = document.getElementById('card-description');
+    const priorityInput = document.getElementById('card-priority');
+    const startDateInput = document.getElementById('card-start-date');
+    const endDateInput = document.getElementById('card-end-date');
 
     modalTitle.textContent = 'Редактировать задачу';
     titleInput.value = card.title;
     descriptionInput.value = card.description;
+    priorityInput.value = card.priority || 'medium';
+    startDateInput.value = card.start_date ? DateUtils.formatDateForInput(card.start_date) : '';
+    endDateInput.value = card.end_date ? DateUtils.formatDateForInput(card.end_date) : '';
 
     modal.classList.remove('hidden');
     titleInput.focus();
@@ -350,9 +410,15 @@ function saveCard(event) {
 
     const titleInput = document.getElementById('card-title');
     const descriptionInput = document.getElementById('card-description');
+    const priorityInput = document.getElementById('card-priority');
+    const startDateInput = document.getElementById('card-start-date');
+    const endDateInput = document.getElementById('card-end-date');
 
     const title = titleInput.value.trim();
     const description = descriptionInput.value.trim();
+    const priority = priorityInput.value;
+    const startDate = startDateInput.value ? new Date(startDateInput.value).toISOString() : null;
+    const endDate = endDateInput.value ? new Date(endDateInput.value).toISOString() : null;
 
     if (!title) {
         alert('Пожалуйста, введите название задачи');
@@ -360,10 +426,17 @@ function saveCard(event) {
         return;
     }
 
+    // Валидация дат
+    if (startDate && endDate && !DateUtils.validateDates(startDate, endDate)) {
+        alert('Дата окончания должна быть позже даты начала');
+        endDateInput.focus();
+        return;
+    }
+
     if (state.editMode && state.selectedCard) {
-        updateCard(state.selectedCard, title, description);
+        updateCard(state.selectedCard, title, description, priority, startDate, endDate);
     } else if (state.currentColumnForNewCard) {
-        addCard(state.currentColumnForNewCard, title, description);
+        addCard(state.currentColumnForNewCard, title, description, priority, startDate, endDate);
     }
 
     closeModal();

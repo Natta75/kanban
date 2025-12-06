@@ -6,6 +6,7 @@
     <title>Kanban Board</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/card.css">
 </head>
 <body>
     <header>
@@ -136,6 +137,24 @@
                         maxlength="500"
                     ></textarea>
                 </div>
+                <div class="form-group">
+                    <label for="card-priority">Приоритет</label>
+                    <select id="card-priority" name="priority">
+                        <option value="low">Низкий</option>
+                        <option value="medium" selected>Средний</option>
+                        <option value="high">Высокий</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="card-start-date">Дата начала</label>
+                        <input type="date" id="card-start-date" name="startDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="card-end-date">Срок выполнения</label>
+                        <input type="date" id="card-end-date" name="endDate">
+                    </div>
+                </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-cancel" id="cancel-btn">Отмена</button>
                     <button type="submit" class="btn btn-primary">Сохранить</button>
@@ -153,6 +172,7 @@
     <script src="js/services/authService.js"></script>
     <script src="js/services/cardService.js"></script>
     <script src="js/services/realtimeService.js"></script>
+    <script src="js/utils/dateUtils.js"></script>
     <script src="js/components/auth.js"></script>
     <script src="app.js"></script>
 </body>
