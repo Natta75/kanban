@@ -548,6 +548,9 @@ function setupRealtimeSubscription() {
         return;
     }
 
+    // Отписаться от старой подписки, если существует
+    RealtimeService.unsubscribe();
+
     RealtimeService.subscribe({
         onInsert: (newCard) => {
             // Добавить карточку если она соответствует фильтру
@@ -624,7 +627,10 @@ async function initializeApp() {
                 if (event === 'SIGNED_IN' && state.user) {
                     console.log('✅ Пользователь вошёл, загружаем карточки...');
                     await loadCardsFromSupabase();
-                    setupRealtimeSubscription();
+                    // Подключить Realtime только если еще не подключен
+                    if (!RealtimeService.isSubscribed()) {
+                        setupRealtimeSubscription();
+                    }
                 }
 
                 // При выходе - очистить карточки и отключить Realtime
