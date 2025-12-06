@@ -241,8 +241,15 @@ function createCardElement(card) {
             deadlineDiv.classList.add(deadlineClass);
         }
         const icon = DateUtils.getDateIcon(card.end_date);
+        const formattedDate = DateUtils.formatDate(card.end_date);
         const status = DateUtils.getDeadlineStatus(card.end_date);
-        deadlineDiv.textContent = `${icon} Срок: ${status}`;
+
+        // Показываем точную дату и статус для срочных задач
+        if (deadlineClass) {
+            deadlineDiv.textContent = `${icon} Дедлайн: ${formattedDate} (${status})`;
+        } else {
+            deadlineDiv.textContent = `${icon} Дедлайн: ${formattedDate}`;
+        }
         metaDiv.appendChild(deadlineDiv);
     }
 
