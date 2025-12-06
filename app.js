@@ -99,11 +99,8 @@ async function addCard(columnId, title, description, priority, startDate, endDat
         return;
     }
 
-    // Карточка автоматически добавится через Realtime
-    // Но для немедленного отображения добавим вручную
-    state.cards.push(data);
-    renderColumn(columnId);
-    updateCardCount(columnId);
+    // Карточка автоматически добавится через Realtime событие INSERT
+    // Не нужно добавлять локально, чтобы избежать дублирования
 }
 
 async function updateCard(cardId, title, description, priority, startDate, endDate) {
@@ -130,13 +127,8 @@ async function updateCard(cardId, title, description, priority, startDate, endDa
         return;
     }
 
-    // Обновить в state
-    const card = findCardById(cardId);
-    if (card) {
-        card.title = data.title;
-        card.description = data.description;
-        renderColumn(card.column_id);
-    }
+    // Карточка автоматически обновится через Realtime событие UPDATE
+    // Не нужно обновлять локально, чтобы избежать дублирования
 }
 
 async function deleteCard(cardId) {
@@ -159,11 +151,8 @@ async function deleteCard(cardId) {
         return;
     }
 
-    // Удалить из state
-    const columnId = card.column_id;
-    state.cards = state.cards.filter(c => c.id !== cardId);
-    renderColumn(columnId);
-    updateCardCount(columnId);
+    // Карточка автоматически удалится через Realtime событие DELETE
+    // Не нужно удалять локально, чтобы избежать дублирования
 }
 
 async function moveCard(cardId, direction) {
@@ -191,12 +180,8 @@ async function moveCard(cardId, direction) {
         return;
     }
 
-    // Обновить в state
-    card.column_id = newColumnId;
-    renderColumn(oldColumnId);
-    renderColumn(newColumnId);
-    updateCardCount(oldColumnId);
-    updateCardCount(newColumnId);
+    // Карточка автоматически обновится через Realtime событие UPDATE
+    // Не нужно обновлять локально, чтобы избежать дублирования
 }
 
 // ============================================================
