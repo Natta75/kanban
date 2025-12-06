@@ -9,6 +9,7 @@ const FiltersComponent = {
     // DOM элементы
     showAllTasksCheckbox: null,
     priorityFilter: null,
+    sortSelect: null,
     resetFiltersBtn: null,
 
     // Callback функция
@@ -17,7 +18,8 @@ const FiltersComponent = {
     // Текущие фильтры
     currentFilters: {
         showAllTasks: false,
-        priority: null
+        priority: null,
+        sortOrder: null
     },
 
     /**
@@ -27,11 +29,12 @@ const FiltersComponent = {
     init(onFilterChange) {
         this.showAllTasksCheckbox = document.getElementById('show-all-tasks');
         this.priorityFilter = document.getElementById('priority-filter');
+        this.sortSelect = document.getElementById('sort-select');
         this.resetFiltersBtn = document.getElementById('reset-filters');
 
         this.onFilterChangeCallback = onFilterChange;
 
-        if (!this.showAllTasksCheckbox || !this.priorityFilter || !this.resetFiltersBtn) {
+        if (!this.showAllTasksCheckbox || !this.priorityFilter || !this.sortSelect || !this.resetFiltersBtn) {
             console.warn('Некоторые элементы фильтров не найдены');
             return;
         }
@@ -43,6 +46,10 @@ const FiltersComponent = {
 
         this.priorityFilter.addEventListener('change', () => {
             this.handlePriorityFilterChange();
+        });
+
+        this.sortSelect.addEventListener('change', () => {
+            this.handleSortChange();
         });
 
         this.resetFiltersBtn.addEventListener('click', () => {
@@ -76,6 +83,18 @@ const FiltersComponent = {
     },
 
     /**
+     * Обработка изменения сортировки
+     */
+    handleSortChange() {
+        const value = this.sortSelect.value;
+        this.currentFilters.sortOrder = value === '' ? null : value;
+
+        console.log(`🔧 Сортировка: ${this.currentFilters.sortOrder || 'нет'}`);
+
+        this.notifyFilterChange();
+    },
+
+    /**
      * Уведомить о изменении фильтров
      */
     notifyFilterChange() {
@@ -97,10 +116,15 @@ const FiltersComponent = {
             this.priorityFilter.value = '';
         }
 
+        if (this.sortSelect) {
+            this.sortSelect.value = '';
+        }
+
         // Сбросить состояние
         this.currentFilters = {
             showAllTasks: false,
-            priority: null
+            priority: null,
+            sortOrder: null
         };
 
         console.log('🔧 Фильтры сброшены');
@@ -136,7 +160,54 @@ const FiltersComponent = {
             filtered = filtered.filter(card => card.priority === filters.priority);
         }
 
+        // Сортировка
+        if (filters.sortOrder) {
+            filtered = this.sortCards(filtered, filters.sortOrder);
+        }
+
         return filtered;
+    },
+
+    /**
+     * Сортировка карточек
+     * @param {Array} cards - Массив карточек
+     * @param {string} sortOrder - Порядок сортировки
+     * @returns {Array} Отсортированные карточки
+     */
+    sortCards(cards, sortOrder) {
+        const sorted = [...cards];
+
+        switch (sortOrder) {
+            case 'deadline-asc':
+                // Сначала ближайшие дедлайны
+                return sorted.sort((a, b) => {
+                    if (!a.end_date && !b.end_date) return 0;
+                    if (!a.end_date) return 1; // Карточки без дедлайна в конец
+                    if (!b.end_date) return -1;
+                    return new Date(a.end_date) - new Date(b.end_date);
+                });
+
+            case 'deadline-desc':
+                // Сначала дальние дедлайны
+                return sorted.sort((a, b) => {
+                    if (!a.end_date && !b.end_date) return 0;
+                    if (!a.end_date) return 1; // Карточки без дедлайна в конец
+                    if (!b.end_date) return -1;
+                    return new Date(b.end_date) - new Date(a.end_date);
+                });
+
+            case 'priority':
+                // По приоритету: высокий -> средний -> низкий
+                const priorityOrder = { high: 0, medium: 1, low: 2 };
+                return sorted.sort((a, b) => {
+                    const aPriority = priorityOrder[a.priority] ?? 3;
+                    const bPriority = priorityOrder[b.priority] ?? 3;
+                    return aPriority - bPriority;
+                });
+
+            default:
+                return sorted;
+        }
     },
 
     /**

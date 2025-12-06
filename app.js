@@ -12,7 +12,8 @@ const state = {
     // Фильтры и поиск
     filters: {
         showAllTasks: false,
-        priority: null
+        priority: null,
+        sortOrder: null
     },
     searchQuery: ''
 };
