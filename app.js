@@ -324,6 +324,14 @@ function renderBoard() {
     COLUMN_ORDER.forEach(columnId => {
         renderColumn(columnId);
     });
+
+    // Переинициализировать drag & drop после рендеринга
+    if (typeof DragDropComponent !== 'undefined' && state.user) {
+        // Небольшая задержка, чтобы DOM успел обновиться
+        setTimeout(() => {
+            DragDropComponent.reinitialize();
+        }, 50);
+    }
 }
 
 function updateCardCount(columnId) {
@@ -652,6 +660,32 @@ async function initializeApp() {
 
     // 3. Уведомления
     await NotificationsComponent.init();
+
+    // 4. Drag & Drop
+    if (typeof DragDropComponent !== 'undefined') {
+        DragDropComponent.init(async (cardId, newColumnId, newPosition) => {
+            // Callback при перемещении карточки через drag & drop
+            console.log(`📦 Drag & Drop: карточка ${cardId} → колонка ${newColumnId}, позиция ${newPosition}`);
+
+            if (!state.user) {
+                alert('Необходима авторизация');
+                // Перерендерить чтобы вернуть карточку на место
+                renderBoard();
+                return;
+            }
+
+            // Обновить на сервере
+            const { data, error } = await CardService.moveCard(cardId, newColumnId, newPosition);
+
+            if (error) {
+                console.error('Ошибка перемещения карточки:', error);
+                alert('Не удалось переместить карточку: ' + error.message);
+                // Перерендерить чтобы вернуть карточку на место
+                renderBoard();
+            }
+            // Обновление через Realtime произойдет автоматически
+        });
+    }
 
     // Инициализация Auth UI
     if (typeof AuthUI !== 'undefined') {
