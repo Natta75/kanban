@@ -4,6 +4,8 @@
 
 const state = {
     cards: [],
+    user: null,
+    showAllTasks: false,
     selectedCard: null,
     editMode: false,
     currentColumnForNewCard: null
@@ -26,7 +28,7 @@ function generateId() {
 }
 
 function getCardsByColumn(columnId) {
-    return state.cards.filter(card => card.columnId === columnId);
+    return state.cards.filter(card => card.column_id === columnId);
 }
 
 function findCardById(cardId) {
@@ -70,68 +72,115 @@ function loadFromStorage() {
 }
 
 // ============================================================
-// CARD CRUD OPERATIONS
+// CARD CRUD OPERATIONS (через Supabase)
 // ============================================================
 
-function addCard(columnId, title, description) {
-    const newCard = {
-        id: generateId(),
+async function addCard(columnId, title, description) {
+    if (!state.user) {
+        alert('Необходима авторизация для создания карточек');
+        return;
+    }
+
+    const { data, error } = await CardService.createCard({
         title: title.trim(),
         description: description.trim(),
-        columnId,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-    };
+        column_id: columnId,
+        priority: 'medium'
+    });
 
-    state.cards.push(newCard);
-    saveToStorage();
+    if (error) {
+        console.error('Ошибка создания карточки:', error);
+        alert('Не удалось создать карточку: ' + error.message);
+        return;
+    }
+
+    // Карточка автоматически добавится через Realtime
+    // Но для немедленного отображения добавим вручную
+    state.cards.push(data);
     renderColumn(columnId);
     updateCardCount(columnId);
 }
 
-function updateCard(cardId, title, description) {
+async function updateCard(cardId, title, description) {
+    if (!state.user) {
+        alert('Необходима авторизация');
+        return;
+    }
+
+    const { data, error } = await CardService.updateCard(cardId, {
+        title: title.trim(),
+        description: description.trim()
+    });
+
+    if (error) {
+        console.error('Ошибка обновления карточки:', error);
+        alert('Не удалось обновить карточку: ' + error.message);
+        return;
+    }
+
+    // Обновить в state
     const card = findCardById(cardId);
-    if (!card) return;
-
-    card.title = title.trim();
-    card.description = description.trim();
-    card.updatedAt = Date.now();
-
-    saveToStorage();
-    renderColumn(card.columnId);
+    if (card) {
+        card.title = data.title;
+        card.description = data.description;
+        renderColumn(card.column_id);
+    }
 }
 
-function deleteCard(cardId) {
+async function deleteCard(cardId) {
     const card = findCardById(cardId);
     if (!card) return;
+
+    if (!state.user) {
+        alert('Необходима авторизация');
+        return;
+    }
 
     const confirmed = confirm('Вы уверены, что хотите удалить эту задачу?');
     if (!confirmed) return;
 
-    const columnId = card.columnId;
-    state.cards = state.cards.filter(c => c.id !== cardId);
+    const { error } = await CardService.deleteCard(cardId);
 
-    saveToStorage();
+    if (error) {
+        console.error('Ошибка удаления карточки:', error);
+        alert('Не удалось удалить карточку: ' + error.message);
+        return;
+    }
+
+    // Удалить из state
+    const columnId = card.column_id;
+    state.cards = state.cards.filter(c => c.id !== cardId);
     renderColumn(columnId);
     updateCardCount(columnId);
 }
 
-function moveCard(cardId, direction) {
+async function moveCard(cardId, direction) {
     const card = findCardById(cardId);
     if (!card) return;
 
-    const currentIndex = getColumnIndex(card.columnId);
+    if (!state.user) {
+        alert('Необходима авторизация');
+        return;
+    }
+
+    const currentIndex = getColumnIndex(card.column_id);
     const newIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
 
     if (newIndex < 0 || newIndex >= COLUMN_ORDER.length) return;
 
-    const oldColumnId = card.columnId;
+    const oldColumnId = card.column_id;
     const newColumnId = COLUMN_ORDER[newIndex];
 
-    card.columnId = newColumnId;
-    card.updatedAt = Date.now();
+    const { data, error } = await CardService.moveCard(cardId, newColumnId, 0);
 
-    saveToStorage();
+    if (error) {
+        console.error('Ошибка перемещения карточки:', error);
+        alert('Не удалось переместить карточку: ' + error.message);
+        return;
+    }
+
+    // Обновить в state
+    card.column_id = newColumnId;
     renderColumn(oldColumnId);
     renderColumn(newColumnId);
     updateCardCount(oldColumnId);
@@ -196,21 +245,21 @@ function createCardElement(card) {
     moveLeftBtn.className = 'card-btn btn-move';
     moveLeftBtn.textContent = '← Назад';
     moveLeftBtn.onclick = () => moveCard(card.id, 'left');
-    moveLeftBtn.disabled = !canMoveLeft(card.columnId);
+    moveLeftBtn.disabled = !canMoveLeft(card.column_id);
 
     // Кнопка перемещения вправо
     const moveRightBtn = document.createElement('button');
     moveRightBtn.className = 'card-btn btn-move';
     moveRightBtn.textContent = 'Далее →';
     moveRightBtn.onclick = () => moveCard(card.id, 'right');
-    moveRightBtn.disabled = !canMoveRight(card.columnId);
+    moveRightBtn.disabled = !canMoveRight(card.column_id);
 
     actionsDiv.appendChild(editBtn);
     actionsDiv.appendChild(deleteBtn);
-    if (canMoveLeft(card.columnId)) {
+    if (canMoveLeft(card.column_id)) {
         actionsDiv.appendChild(moveLeftBtn);
     }
-    if (canMoveRight(card.columnId)) {
+    if (canMoveRight(card.column_id)) {
         actionsDiv.appendChild(moveRightBtn);
     }
 
@@ -361,12 +410,136 @@ function initializeEventListeners() {
 }
 
 // ============================================================
+// SUPABASE DATA LOADING
+// ============================================================
+
+async function loadCardsFromSupabase() {
+    if (!state.user) {
+        console.log('Пользователь не авторизован, карточки не загружаются');
+        state.cards = [];
+        renderBoard();
+        return;
+    }
+
+    // Проверить наличие данных в localStorage для миграции
+    await checkAndMigrateLocalStorage();
+
+    const { data, error } = await CardService.getCards(state.showAllTasks);
+
+    if (error) {
+        console.error('Ошибка загрузки карточек:', error);
+        alert('Не удалось загрузить карточки');
+        return;
+    }
+
+    state.cards = data || [];
+    renderBoard();
+    console.log(`✅ Загружено карточек из Supabase: ${state.cards.length}`);
+}
+
+async function checkAndMigrateLocalStorage() {
+    try {
+        const saved = localStorage.getItem('kanbanCards');
+        if (!saved) {
+            return; // Нет данных для миграции
+        }
+
+        const localCards = JSON.parse(saved);
+        if (!localCards || localCards.length === 0) {
+            return; // Пустой массив
+        }
+
+        // Спросить пользователя о миграции
+        const shouldMigrate = confirm(
+            `Найдено ${localCards.length} карточек в локальном хранилище.\n\n` +
+            `Хотите перенести их в облако?\n\n` +
+            `(После переноса локальные данные будут удалены)`
+        );
+
+        if (!shouldMigrate) {
+            return;
+        }
+
+        console.log('🔄 Миграция данных из localStorage...');
+
+        const { success, migrated, error } = await CardService.migrateFromLocalStorage(localCards);
+
+        if (error) {
+            console.error('Ошибка миграции:', error);
+            alert('Не удалось перенести данные: ' + error.message);
+            return;
+        }
+
+        console.log(`✅ Мигрировано карточек: ${migrated}`);
+        alert(`✅ Успешно перенесено ${migrated} карточек в облако!`);
+
+        // Удалить локальные данные после успешной миграции
+        localStorage.removeItem('kanbanCards');
+
+    } catch (error) {
+        console.error('Ошибка проверки миграции:', error);
+    }
+}
+
+function setupRealtimeSubscription() {
+    if (!state.user) {
+        console.log('Пользователь не авторизован, Realtime не подключается');
+        return;
+    }
+
+    RealtimeService.subscribe({
+        onInsert: (newCard) => {
+            // Добавить карточку если она соответствует фильтру
+            if (state.showAllTasks || newCard.user_id === state.user.id) {
+                state.cards.push(newCard);
+                renderColumn(newCard.column_id);
+                updateCardCount(newCard.column_id);
+            }
+        },
+        onUpdate: (updatedCard) => {
+            // Обновить карточку
+            const index = state.cards.findIndex(c => c.id === updatedCard.id);
+            if (index !== -1) {
+                const oldColumnId = state.cards[index].column_id;
+                state.cards[index] = updatedCard;
+
+                // Перерендерить обе колонки если карточка переместилась
+                if (oldColumnId !== updatedCard.column_id) {
+                    renderColumn(oldColumnId);
+                    updateCardCount(oldColumnId);
+                }
+                renderColumn(updatedCard.column_id);
+                updateCardCount(updatedCard.column_id);
+            }
+        },
+        onDelete: (deletedCard) => {
+            // Удалить карточку
+            const index = state.cards.findIndex(c => c.id === deletedCard.id);
+            if (index !== -1) {
+                state.cards.splice(index, 1);
+                renderColumn(deletedCard.column_id);
+                updateCardCount(deletedCard.column_id);
+            }
+        }
+    });
+}
+
+// ============================================================
 // INITIALIZATION
 // ============================================================
 
-function initializeApp() {
+async function initializeApp() {
     // Инициализация Supabase
     initializeSupabase();
+
+    // Тестирование подключения к Supabase
+    if (typeof testSupabaseConnection === 'function') {
+        const connected = await testSupabaseConnection();
+        if (!connected) {
+            console.warn('⚠️ Не удалось подключиться к Supabase. Проверьте, что таблицы созданы.');
+            console.info('📖 Инструкция: откройте SETUP_INSTRUCTIONS.md');
+        }
+    }
 
     // Инициализация Auth UI
     if (typeof AuthUI !== 'undefined') {
@@ -374,16 +547,49 @@ function initializeApp() {
 
         // Подписка на изменения состояния аутентификации
         if (typeof AuthService !== 'undefined') {
-            AuthService.onAuthStateChange((event, session) => {
+            AuthService.onAuthStateChange(async (event, session) => {
                 console.log('Auth state changed in app:', event);
-                AuthUI.updateUIForAuthState(session?.user || null);
+
+                // Обновить user в state
+                state.user = session?.user || null;
+
+                // Обновить UI
+                AuthUI.updateUIForAuthState(state.user);
+
+                // При входе - загрузить карточки и подключить Realtime
+                if (event === 'SIGNED_IN' && state.user) {
+                    console.log('✅ Пользователь вошёл, загружаем карточки...');
+                    await loadCardsFromSupabase();
+                    setupRealtimeSubscription();
+                }
+
+                // При выходе - очистить карточки и отключить Realtime
+                if (event === 'SIGNED_OUT') {
+                    console.log('👋 Пользователь вышел');
+                    state.cards = [];
+                    renderBoard();
+                    RealtimeService.unsubscribe();
+                }
             });
         }
     }
 
-    // Загрузка данных и рендеринг
-    loadFromStorage();
-    renderBoard();
+    // Проверить текущую сессию
+    const currentUser = await AuthService.getCurrentUser();
+    state.user = currentUser;
+
+    // Если пользователь авторизован - загрузить карточки
+    if (state.user) {
+        console.log('✅ Пользователь авторизован:', state.user.email);
+        await loadCardsFromSupabase();
+        setupRealtimeSubscription();
+    } else {
+        // Если не авторизован - показать пустую доску
+        console.log('ℹ️ Пользователь не авторизован');
+        state.cards = [];
+        renderBoard();
+    }
+
     initializeEventListeners();
 
     console.log('✅ Kanban Board инициализирован');
