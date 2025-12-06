@@ -5,11 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kanban Board</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
     <header>
-        <h1>Kanban Board</h1>
-        <p class="subtitle">Управляйте своими задачами эффективно</p>
+        <div class="header-content">
+            <div class="header-title">
+                <h1>Kanban Board</h1>
+                <p class="subtitle">Управляйте своими задачами эффективно</p>
+            </div>
+            <div class="header-actions">
+                <!-- Показывается когда пользователь НЕ авторизован -->
+                <div id="auth-buttons" class="auth-buttons">
+                    <button class="btn btn-outline" id="show-login-btn">Войти</button>
+                </div>
+                <!-- Показывается когда пользователь авторизован -->
+                <div id="user-profile" class="user-profile hidden">
+                    <span class="user-email" id="user-email"></span>
+                    <button class="btn btn-outline" id="logout-btn">Выйти</button>
+                </div>
+            </div>
+        </div>
     </header>
 
     <main class="board-container">
@@ -46,6 +62,50 @@
             </button>
         </div>
     </main>
+
+    <!-- Модальное окно для аутентификации -->
+    <div id="auth-modal-overlay" class="modal-overlay hidden">
+        <div class="modal auth-modal">
+            <div class="modal-header">
+                <h2 id="auth-modal-title">Вход</h2>
+                <button class="close-btn" id="close-auth-modal" aria-label="Закрыть">&times;</button>
+            </div>
+            <form id="auth-form">
+                <div class="form-group">
+                    <label for="auth-email">Email *</label>
+                    <input
+                        type="email"
+                        id="auth-email"
+                        name="email"
+                        placeholder="your@email.com"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="auth-password">Пароль *</label>
+                    <input
+                        type="password"
+                        id="auth-password"
+                        name="password"
+                        placeholder="Минимум 6 символов"
+                        required
+                        minlength="6"
+                        autocomplete="current-password"
+                    >
+                </div>
+                <div id="auth-error" class="auth-error hidden"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" id="auth-cancel-btn">Отмена</button>
+                    <button type="submit" class="btn btn-primary" id="auth-submit-btn">Войти</button>
+                </div>
+            </form>
+            <div class="auth-toggle">
+                <span id="auth-toggle-text">Нет аккаунта?</span>
+                <button type="button" class="btn-link" id="auth-toggle-btn">Зарегистрироваться</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Модальное окно для создания/редактирования карточки -->
     <div id="modal-overlay" class="modal-overlay hidden">
@@ -84,6 +144,14 @@
         </div>
     </div>
 
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Application Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/services/supabase.js"></script>
+    <script src="js/services/authService.js"></script>
+    <script src="js/components/auth.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

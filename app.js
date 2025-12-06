@@ -365,12 +365,29 @@ function initializeEventListeners() {
 // ============================================================
 
 function initializeApp() {
+    // Инициализация Supabase
+    initializeSupabase();
+
+    // Инициализация Auth UI
+    if (typeof AuthUI !== 'undefined') {
+        AuthUI.init();
+
+        // Подписка на изменения состояния аутентификации
+        if (typeof AuthService !== 'undefined') {
+            AuthService.onAuthStateChange((event, session) => {
+                console.log('Auth state changed in app:', event);
+                AuthUI.updateUIForAuthState(session?.user || null);
+            });
+        }
+    }
+
+    // Загрузка данных и рендеринг
     loadFromStorage();
     renderBoard();
     initializeEventListeners();
 
-    console.log('Kanban Board инициализирован');
-    console.log(`Загружено карточек: ${state.cards.length}`);
+    console.log('✅ Kanban Board инициализирован');
+    console.log(`📋 Загружено карточек: ${state.cards.length}`);
 }
 
 // Запуск приложения при загрузке страницы
