@@ -12,7 +12,7 @@
     }
 
     .subtitle {
-        font-size: 0.813rem;
+        font-size: 0.938rem;
     }
 
     /* Board */
@@ -114,11 +114,11 @@
     }
 
     .card-title {
-        font-size: 0.938rem;
+        font-size: 1.063rem;
     }
 
     .card-description {
-        font-size: 0.813rem;
+        font-size: 0.938rem;
     }
 
     .card-actions {
@@ -197,11 +197,11 @@
     }
 
     .card-title {
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
 
     .card-description {
-        font-size: 0.75rem;
+        font-size: 0.875rem;
     }
 }
 

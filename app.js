@@ -53,14 +53,6 @@ function getColumnIndex(columnId) {
     return COLUMN_ORDER.indexOf(columnId);
 }
 
-function canMoveLeft(columnId) {
-    return getColumnIndex(columnId) > 0;
-}
-
-function canMoveRight(columnId) {
-    return getColumnIndex(columnId) < COLUMN_ORDER.length - 1;
-}
-
 // ============================================================
 // LOCAL STORAGE
 // ============================================================
@@ -169,34 +161,6 @@ async function deleteCard(cardId) {
     // Не нужно удалять локально, чтобы избежать дублирования
 }
 
-async function moveCard(cardId, direction) {
-    const card = findCardById(cardId);
-    if (!card) return;
-
-    if (!state.user) {
-        alert('Необходима авторизация');
-        return;
-    }
-
-    const currentIndex = getColumnIndex(card.column_id);
-    const newIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
-
-    if (newIndex < 0 || newIndex >= COLUMN_ORDER.length) return;
-
-    const oldColumnId = card.column_id;
-    const newColumnId = COLUMN_ORDER[newIndex];
-
-    const { data, error } = await CardService.moveCard(cardId, newColumnId, 0);
-
-    if (error) {
-        console.error('Ошибка перемещения карточки:', error);
-        alert('Не удалось переместить карточку: ' + error.message);
-        return;
-    }
-
-    // Карточка автоматически обновится через Realtime событие UPDATE
-    // Не нужно обновлять локально, чтобы избежать дублирования
-}
 
 // ============================================================
 // DOM RENDERING
@@ -260,7 +224,15 @@ function createCardElement(card) {
         metaDiv.appendChild(priorityBadge);
     }
 
-    // Дата окончания
+    // Дата начала
+    if (card.start_date) {
+        const startDateDiv = document.createElement('div');
+        startDateDiv.className = 'card-start-date';
+        startDateDiv.textContent = `📅 ${DateUtils.formatDate(card.start_date)}`;
+        metaDiv.appendChild(startDateDiv);
+    }
+
+    // Дата окончания (дедлайн)
     if (card.end_date) {
         const deadlineDiv = document.createElement('div');
         deadlineDiv.className = 'card-deadline';
@@ -270,7 +242,7 @@ function createCardElement(card) {
         }
         const icon = DateUtils.getDateIcon(card.end_date);
         const status = DateUtils.getDeadlineStatus(card.end_date);
-        deadlineDiv.textContent = `${icon} ${status}`;
+        deadlineDiv.textContent = `${icon} Срок: ${status}`;
         metaDiv.appendChild(deadlineDiv);
     }
 
@@ -289,28 +261,8 @@ function createCardElement(card) {
     deleteBtn.textContent = 'Удалить';
     deleteBtn.onclick = () => deleteCard(card.id);
 
-    // Кнопка перемещения влево
-    const moveLeftBtn = document.createElement('button');
-    moveLeftBtn.className = 'card-btn btn-move';
-    moveLeftBtn.textContent = '← Назад';
-    moveLeftBtn.onclick = () => moveCard(card.id, 'left');
-    moveLeftBtn.disabled = !canMoveLeft(card.column_id);
-
-    // Кнопка перемещения вправо
-    const moveRightBtn = document.createElement('button');
-    moveRightBtn.className = 'card-btn btn-move';
-    moveRightBtn.textContent = 'Далее →';
-    moveRightBtn.onclick = () => moveCard(card.id, 'right');
-    moveRightBtn.disabled = !canMoveRight(card.column_id);
-
     actionsDiv.appendChild(editBtn);
     actionsDiv.appendChild(deleteBtn);
-    if (canMoveLeft(card.column_id)) {
-        actionsDiv.appendChild(moveLeftBtn);
-    }
-    if (canMoveRight(card.column_id)) {
-        actionsDiv.appendChild(moveRightBtn);
-    }
 
     cardDiv.appendChild(titleDiv);
     cardDiv.appendChild(descriptionDiv);

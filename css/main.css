@@ -98,7 +98,7 @@
    ============================================================ */
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1.6;
     color: var(--text-primary);
     background-color: var(--bg-body);
@@ -149,7 +149,7 @@ header {
 }
 
 .subtitle {
-    font-size: 0.875rem;
+    font-size: 1rem;
     opacity: 0.9;
     font-weight: 400;
 }
@@ -202,7 +202,7 @@ header {
 }
 
 .column-header h2 {
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -212,7 +212,7 @@ header {
     color: var(--text-on-primary);
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--radius-full);
-    font-size: 0.75rem;
+    font-size: 0.875rem;
     font-weight: 700;
     min-width: 24px;
     text-align: center;
@@ -270,7 +270,7 @@ header {
 }
 
 .card-title {
-    font-size: 1rem;
+    font-size: 1.125rem;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: var(--space-sm);
@@ -279,7 +279,7 @@ header {
 }
 
 .card-description {
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: var(--text-secondary);
     margin-bottom: var(--space-md);
     line-height: 1.5;
@@ -303,7 +303,7 @@ header {
     padding: var(--space-xs) var(--space-md);
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 0.813rem;
+    font-size: 0.938rem;
     font-weight: 500;
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -337,22 +337,6 @@ header {
     background-color: #d32f2f;
 }
 
-.btn-move {
-    background-color: var(--gray-500);
-    color: var(--text-on-primary);
-}
-
-.btn-move:hover {
-    background-color: var(--gray-600);
-}
-
-.btn-move:disabled {
-    background-color: var(--gray-200);
-    color: var(--text-disabled);
-    cursor: not-allowed;
-    transform: none !important;
-}
-
 /* ============================================================
    Add Card Button
    ============================================================ */
@@ -363,7 +347,7 @@ header {
     border: 2px dashed var(--gray-300);
     border-radius: var(--radius-md);
     color: var(--text-secondary);
-    font-size: 0.938rem;
+    font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
     transition: all var(--transition-base);
@@ -458,7 +442,7 @@ header {
     margin-bottom: var(--space-sm);
     font-weight: 500;
     color: var(--text-primary);
-    font-size: 0.938rem;
+    font-size: 1rem;
 }
 
 .form-group input,
@@ -502,7 +486,7 @@ header {
     padding: var(--space-md) var(--space-xl);
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 0.938rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-fast);
