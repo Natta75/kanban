@@ -157,7 +157,7 @@ const NotificationsComponent = {
 
         new Notification(title, {
             body: body,
-            icon: '/favicon.ico',
+            icon: '/favicon.svg',
             tag: 'kanban-deadline',
             requireInteraction: false
         });
