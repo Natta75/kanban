@@ -7,6 +7,8 @@
    ============================================================ */
 .search-container {
     margin-right: 1rem;
+    display: flex;
+    align-items: center;
 }
 
 .search-input {
@@ -16,11 +18,14 @@
     border-radius: 20px;
     font-size: 1rem;
     transition: all 0.3s ease;
+    border-color: rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.95);
 }
 
 .search-input:focus {
     outline: none;
     border-color: #2196F3;
+    background-color: white;
     box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
     width: 350px;
 }

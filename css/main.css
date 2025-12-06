@@ -139,6 +139,11 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+}
+
+.header-title {
+    flex: 0 1 auto;
 }
 
 .header-title h1 {
@@ -158,6 +163,7 @@ header {
     display: flex;
     gap: var(--space-md);
     align-items: center;
+    flex-wrap: wrap;
 }
 
 /* ============================================================
