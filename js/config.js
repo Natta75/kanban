@@ -3,9 +3,12 @@
 // ============================================================
 
 const CONFIG = {
-    // Supabase credentials (будут заполнены пользователем)
-    SUPABASE_URL: '', // Заполните из вашего Supabase проекта
-    SUPABASE_ANON_KEY: '', // Заполните из вашего Supabase проекта
+    // Supabase credentials
+    SUPABASE_URL: 'https://kxnlthfsxtrdswqriaan.supabase.co',
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4bmx0aGZzeHRyZHN3cXJpYWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2NzcxNzUsImV4cCI6MjA4MDI1MzE3NX0.amhB5yNMbrPUn3D0WtYQXwh65t4dFMt4SeUnk8QSRWI',
+
+    // Префикс для таблиц (для изоляции от других приложений в том же проекте)
+    TABLE_PREFIX: 'kanban_',
 
     // Колонки канбан-доски
     COLUMNS: {
@@ -49,7 +52,13 @@ const CONFIG = {
 
     // Лимиты
     MAX_TITLE_LENGTH: 100,
-    MAX_DESCRIPTION_LENGTH: 500
+    MAX_DESCRIPTION_LENGTH: 500,
+
+    // Имена таблиц (с префиксом)
+    TABLES: {
+        CARDS: 'kanban_cards',
+        USER_PREFERENCES: 'kanban_user_preferences'
+    }
 };
 
 // Экспорт для использования в других модулях

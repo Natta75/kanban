@@ -65,9 +65,9 @@ async function testSupabaseConnection() {
             return false;
         }
 
-        // Простой запрос для проверки подключения
+        // Простой запрос для проверки подключения к таблице kanban_cards
         const { data, error } = await client
-            .from('cards')
+            .from(CONFIG.TABLES.CARDS)
             .select('count')
             .limit(1);
 
