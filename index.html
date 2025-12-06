@@ -46,10 +46,10 @@
     <!-- Панель фильтров -->
     <div class="filters-toolbar">
         <div class="filters-group">
-            <label class="filter-checkbox">
-                <input type="checkbox" id="show-all-tasks">
-                <span>Показать все задачи</span>
-            </label>
+            <select id="user-filter" class="filter-select">
+                <option value="my">👤 Только мои задачи</option>
+                <option value="all">👥 Все задачи</option>
+            </select>
 
             <select id="priority-filter" class="filter-select">
                 <option value="">Все приоритеты</option>

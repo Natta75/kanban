@@ -318,5 +318,38 @@ const CardService = {
             console.error('❌ Error in migrateFromLocalStorage:', error);
             return { success: false, migrated: 0, error };
         }
+    },
+
+    /**
+     * Получить список уникальных пользователей из карточек
+     * @returns {Promise<{data: Array|null, error: Error|null}>}
+     */
+    async getUniqueUsers() {
+        try {
+            const client = getSupabaseClient();
+            if (!client) {
+                return { data: null, error: new Error('Supabase не настроен') };
+            }
+
+            // Получаем все карточки чтобы извлечь уникальных пользователей
+            const { data: cards, error } = await client
+                .from(CONFIG.TABLES.CARDS)
+                .select('user_id');
+
+            if (error) {
+                console.error('Error fetching users:', error);
+                return { data: null, error };
+            }
+
+            // Извлекаем уникальные user_id
+            const uniqueUserIds = [...new Set(cards.map(card => card.user_id))];
+
+            console.log(`✅ Найдено уникальных пользователей: ${uniqueUserIds.length}`);
+            return { data: uniqueUserIds, error: null };
+
+        } catch (error) {
+            console.error('❌ Error in getUniqueUsers:', error);
+            return { data: null, error };
+        }
     }
 };

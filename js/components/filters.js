@@ -7,7 +7,7 @@
  */
 const FiltersComponent = {
     // DOM элементы
-    showAllTasksCheckbox: null,
+    userFilter: null,
     priorityFilter: null,
     sortSelect: null,
     resetFiltersBtn: null,
@@ -17,7 +17,7 @@ const FiltersComponent = {
 
     // Текущие фильтры
     currentFilters: {
-        showAllTasks: false,
+        selectedUser: 'my', // 'my', 'all', или конкретный user_id
         priority: null,
         sortOrder: null
     },
@@ -27,21 +27,21 @@ const FiltersComponent = {
      * @param {Function} onFilterChange - Callback функция, вызываемая при изменении фильтров
      */
     init(onFilterChange) {
-        this.showAllTasksCheckbox = document.getElementById('show-all-tasks');
+        this.userFilter = document.getElementById('user-filter');
         this.priorityFilter = document.getElementById('priority-filter');
         this.sortSelect = document.getElementById('sort-select');
         this.resetFiltersBtn = document.getElementById('reset-filters');
 
         this.onFilterChangeCallback = onFilterChange;
 
-        if (!this.showAllTasksCheckbox || !this.priorityFilter || !this.sortSelect || !this.resetFiltersBtn) {
+        if (!this.userFilter || !this.priorityFilter || !this.sortSelect || !this.resetFiltersBtn) {
             console.warn('Некоторые элементы фильтров не найдены');
             return;
         }
 
         // Подписка на события
-        this.showAllTasksCheckbox.addEventListener('change', () => {
-            this.handleShowAllTasksChange();
+        this.userFilter.addEventListener('change', () => {
+            this.handleUserFilterChange();
         });
 
         this.priorityFilter.addEventListener('change', () => {
@@ -60,12 +60,12 @@ const FiltersComponent = {
     },
 
     /**
-     * Обработка изменения чекбокса "Показать все задачи"
+     * Обработка изменения фильтра пользователей
      */
-    handleShowAllTasksChange() {
-        this.currentFilters.showAllTasks = this.showAllTasksCheckbox.checked;
+    handleUserFilterChange() {
+        this.currentFilters.selectedUser = this.userFilter.value;
 
-        console.log(`🔧 Показать все задачи: ${this.currentFilters.showAllTasks}`);
+        console.log(`🔧 Фильтр пользователей: ${this.currentFilters.selectedUser}`);
 
         this.notifyFilterChange();
     },
@@ -108,8 +108,8 @@ const FiltersComponent = {
      */
     resetFilters() {
         // Сбросить UI
-        if (this.showAllTasksCheckbox) {
-            this.showAllTasksCheckbox.checked = false;
+        if (this.userFilter) {
+            this.userFilter.value = 'my';
         }
 
         if (this.priorityFilter) {
@@ -122,7 +122,7 @@ const FiltersComponent = {
 
         // Сбросить состояние
         this.currentFilters = {
-            showAllTasks: false,
+            selectedUser: 'my',
             priority: null,
             sortOrder: null
         };
@@ -150,10 +150,15 @@ const FiltersComponent = {
     applyFilters(cards, filters, currentUserId) {
         let filtered = [...cards];
 
-        // Фильтр по пользователю (показать только свои или все)
-        if (!filters.showAllTasks && currentUserId) {
+        // Фильтр по пользователю
+        if (filters.selectedUser === 'my' && currentUserId) {
+            // Показать только свои задачи
             filtered = filtered.filter(card => card.user_id === currentUserId);
+        } else if (filters.selectedUser !== 'all') {
+            // Показать задачи конкретного пользователя
+            filtered = filtered.filter(card => card.user_id === filters.selectedUser);
         }
+        // Если 'all' - показываем все, не фильтруем
 
         // Фильтр по приоритету
         if (filters.priority) {
@@ -211,15 +216,39 @@ const FiltersComponent = {
     },
 
     /**
-     * Установить состояние фильтра "Показать все задачи"
-     * @param {boolean} showAll
+     * Добавить пользователей в выпадающий список
+     * @param {Array} userIds - Массив ID пользователей
+     * @param {string} currentUserId - ID текущего пользователя
      */
-    setShowAllTasks(showAll) {
-        this.currentFilters.showAllTasks = showAll;
+    populateUserFilter(userIds, currentUserId) {
+        if (!this.userFilter) return;
 
-        if (this.showAllTasksCheckbox) {
-            this.showAllTasksCheckbox.checked = showAll;
+        // Сохраняем текущее значение
+        const currentValue = this.userFilter.value;
+
+        // Очищаем опции кроме базовых
+        this.userFilter.innerHTML = `
+            <option value="my">👤 Только мои задачи</option>
+            <option value="all">👥 Все задачи</option>
+        `;
+
+        // Добавляем других пользователей
+        userIds.forEach(userId => {
+            if (userId !== currentUserId) {
+                const option = document.createElement('option');
+                option.value = userId;
+                // Показываем первые 8 символов ID для идентификации
+                option.textContent = `👨‍💼 Пользователь ${userId.substring(0, 8)}...`;
+                this.userFilter.appendChild(option);
+            }
+        });
+
+        // Восстанавливаем выбранное значение если оно еще существует
+        if (Array.from(this.userFilter.options).some(opt => opt.value === currentValue)) {
+            this.userFilter.value = currentValue;
         }
+
+        console.log(`✅ Добавлено пользователей в фильтр: ${userIds.length}`);
     },
 
     /**

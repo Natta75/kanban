@@ -5,13 +5,12 @@
 const state = {
     cards: [],
     user: null,
-    showAllTasks: false,
     selectedCard: null,
     editMode: false,
     currentColumnForNewCard: null,
     // Фильтры и поиск
     filters: {
-        showAllTasks: false,
+        selectedUser: 'my', // 'my', 'all', или конкретный user_id
         priority: null,
         sortOrder: null
     },
@@ -469,7 +468,10 @@ async function loadCardsFromSupabase() {
     // Проверить наличие данных в localStorage для миграции
     await checkAndMigrateLocalStorage();
 
-    const { data, error } = await CardService.getCards(state.filters.showAllTasks);
+    // Определяем нужно ли загружать все карточки
+    const loadAll = state.filters.selectedUser !== 'my';
+
+    const { data, error } = await CardService.getCards(loadAll);
 
     if (error) {
         console.error('Ошибка загрузки карточек:', error);
@@ -541,8 +543,13 @@ function setupRealtimeSubscription() {
 
     RealtimeService.subscribe({
         onInsert: (newCard) => {
-            // Добавить карточку если она соответствует фильтру
-            if (state.filters.showAllTasks || newCard.user_id === state.user.id) {
+            // Добавить карточку если она соответствует фильтру пользователя
+            const shouldShow =
+                state.filters.selectedUser === 'all' ||
+                (state.filters.selectedUser === 'my' && newCard.user_id === state.user.id) ||
+                state.filters.selectedUser === newCard.user_id;
+
+            if (shouldShow) {
                 state.cards.push(newCard);
                 renderColumn(newCard.column_id);
                 updateCardCount(newCard.column_id);
@@ -591,6 +598,34 @@ function setupRealtimeSubscription() {
 // INITIALIZATION
 // ============================================================
 
+// ============================================================
+// LOAD AND POPULATE USERS
+// ============================================================
+
+async function loadAndPopulateUsers() {
+    if (!state.user) {
+        console.log('Пользователь не авторизован, список пользователей не загружается');
+        return;
+    }
+
+    const { data: userIds, error } = await CardService.getUniqueUsers();
+
+    if (error) {
+        console.error('Ошибка загрузки пользователей:', error);
+        return;
+    }
+
+    if (userIds && userIds.length > 0) {
+        FiltersComponent.populateUserFilter(userIds, state.user.id);
+    }
+
+    console.log(`✅ Пользователи добавлены в фильтр`);
+}
+
+// ============================================================
+// APP INITIALIZATION
+// ============================================================
+
 async function initializeApp() {
     // Инициализация Supabase
     initializeSupabase();
@@ -613,14 +648,14 @@ async function initializeApp() {
 
     // 2. Фильтры
     FiltersComponent.init((filters) => {
+        const previousSelectedUser = state.filters.selectedUser;
         state.filters = filters;
 
-        // Если изменился фильтр "Показать все задачи", перезагрузить карточки
-        if (state.filters.showAllTasks !== state.showAllTasks) {
-            state.showAllTasks = state.filters.showAllTasks;
+        // Если изменился фильтр пользователя, перезагрузить карточки
+        if (state.filters.selectedUser !== previousSelectedUser) {
             loadCardsFromSupabase();
         } else {
-            // Просто перерендерить с новыми фильтрами
+            // Просто перерендерить с новыми фильтрами/сортировкой
             renderBoard();
         }
     });
@@ -676,6 +711,7 @@ async function initializeApp() {
                 if (event === 'SIGNED_IN' && state.user) {
                     console.log('✅ Пользователь вошёл, загружаем карточки...');
                     await loadCardsFromSupabase();
+                    await loadAndPopulateUsers();
                     // Подключить Realtime только если еще не подключен
                     if (!RealtimeService.isSubscribed()) {
                         setupRealtimeSubscription();
@@ -701,6 +737,7 @@ async function initializeApp() {
     if (state.user) {
         console.log('✅ Пользователь авторизован:', state.user.email);
         await loadCardsFromSupabase();
+        await loadAndPopulateUsers();
         setupRealtimeSubscription();
     } else {
         // Если не авторизован - показать пустую доску
