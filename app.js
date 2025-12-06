@@ -76,7 +76,10 @@ function loadFromStorage() {
 // ============================================================
 
 async function addCard(columnId, title, description) {
+    console.log('addCard called, state.user:', state.user);
+
     if (!state.user) {
+        console.error('❌ state.user is null!');
         alert('Необходима авторизация для создания карточек');
         return;
     }
@@ -549,9 +552,12 @@ async function initializeApp() {
         if (typeof AuthService !== 'undefined') {
             AuthService.onAuthStateChange(async (event, session) => {
                 console.log('Auth state changed in app:', event);
+                console.log('Session:', session);
+                console.log('User from session:', session?.user);
 
                 // Обновить user в state
                 state.user = session?.user || null;
+                console.log('state.user updated to:', state.user);
 
                 // Обновить UI
                 AuthUI.updateUIForAuthState(state.user);
