@@ -8,7 +8,13 @@ const state = {
     showAllTasks: false,
     selectedCard: null,
     editMode: false,
-    currentColumnForNewCard: null
+    currentColumnForNewCard: null,
+    // Фильтры и поиск
+    filters: {
+        showAllTasks: false,
+        priority: null
+    },
+    searchQuery: ''
 };
 
 const COLUMNS = {
@@ -28,7 +34,15 @@ function generateId() {
 }
 
 function getCardsByColumn(columnId) {
-    return state.cards.filter(card => card.column_id === columnId);
+    let cards = state.cards.filter(card => card.column_id === columnId);
+
+    // Применить фильтры
+    cards = FiltersComponent.applyFilters(cards, state.filters, state.user?.id);
+
+    // Применить поиск
+    cards = SearchComponent.filterCards(cards, state.searchQuery);
+
+    return cards;
 }
 
 function findCardById(cardId) {
@@ -485,7 +499,7 @@ async function loadCardsFromSupabase() {
     // Проверить наличие данных в localStorage для миграции
     await checkAndMigrateLocalStorage();
 
-    const { data, error } = await CardService.getCards(state.showAllTasks);
+    const { data, error } = await CardService.getCards(state.filters.showAllTasks);
 
     if (error) {
         console.error('Ошибка загрузки карточек:', error);
@@ -495,6 +509,10 @@ async function loadCardsFromSupabase() {
 
     state.cards = data || [];
     renderBoard();
+
+    // Проверить дедлайны и показать уведомления
+    NotificationsComponent.checkDeadlines(state.cards);
+
     console.log(`✅ Загружено карточек из Supabase: ${state.cards.length}`);
 }
 
@@ -554,10 +572,12 @@ function setupRealtimeSubscription() {
     RealtimeService.subscribe({
         onInsert: (newCard) => {
             // Добавить карточку если она соответствует фильтру
-            if (state.showAllTasks || newCard.user_id === state.user.id) {
+            if (state.filters.showAllTasks || newCard.user_id === state.user.id) {
                 state.cards.push(newCard);
                 renderColumn(newCard.column_id);
                 updateCardCount(newCard.column_id);
+                // Обновить уведомления
+                NotificationsComponent.checkDeadlines(state.cards);
             }
         },
         onUpdate: (updatedCard) => {
@@ -574,6 +594,8 @@ function setupRealtimeSubscription() {
                 }
                 renderColumn(updatedCard.column_id);
                 updateCardCount(updatedCard.column_id);
+                // Обновить уведомления
+                NotificationsComponent.checkDeadlines(state.cards);
             }
         },
         onDelete: (deletedCard) => {
@@ -583,6 +605,8 @@ function setupRealtimeSubscription() {
                 state.cards.splice(index, 1);
                 renderColumn(deletedCard.column_id);
                 updateCardCount(deletedCard.column_id);
+                // Обновить уведомления
+                NotificationsComponent.checkDeadlines(state.cards);
             }
         }
     });
@@ -604,6 +628,30 @@ async function initializeApp() {
             console.info('📖 Инструкция: откройте SETUP_INSTRUCTIONS.md');
         }
     }
+
+    // Инициализация компонентов
+    // 1. Поиск
+    SearchComponent.init((searchQuery) => {
+        state.searchQuery = searchQuery;
+        renderBoard();
+    });
+
+    // 2. Фильтры
+    FiltersComponent.init((filters) => {
+        state.filters = filters;
+
+        // Если изменился фильтр "Показать все задачи", перезагрузить карточки
+        if (state.filters.showAllTasks !== state.showAllTasks) {
+            state.showAllTasks = state.filters.showAllTasks;
+            loadCardsFromSupabase();
+        } else {
+            // Просто перерендерить с новыми фильтрами
+            renderBoard();
+        }
+    });
+
+    // 3. Уведомления
+    await NotificationsComponent.init();
 
     // Инициализация Auth UI
     if (typeof AuthUI !== 'undefined') {

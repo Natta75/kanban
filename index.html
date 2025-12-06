@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/card.css">
+    <link rel="stylesheet" href="css/filters.css">
 </head>
 <body>
     <header>
@@ -16,6 +17,15 @@
                 <p class="subtitle">Управляйте своими задачами эффективно</p>
             </div>
             <div class="header-actions">
+                <!-- Поиск -->
+                <div class="search-container">
+                    <input
+                        type="search"
+                        id="search-input"
+                        placeholder="🔍 Поиск задач..."
+                        class="search-input"
+                    >
+                </div>
                 <!-- Показывается когда пользователь НЕ авторизован -->
                 <div id="auth-buttons" class="auth-buttons">
                     <button class="btn btn-outline" id="show-login-btn">Войти</button>
@@ -28,6 +38,28 @@
             </div>
         </div>
     </header>
+
+    <!-- Панель фильтров -->
+    <div class="filters-toolbar">
+        <div class="filters-group">
+            <label class="filter-checkbox">
+                <input type="checkbox" id="show-all-tasks">
+                <span>Показать все задачи</span>
+            </label>
+
+            <select id="priority-filter" class="filter-select">
+                <option value="">Все приоритеты</option>
+                <option value="high">🔴 Высокий</option>
+                <option value="medium">🟡 Средний</option>
+                <option value="low">🟢 Низкий</option>
+            </select>
+
+            <button id="reset-filters" class="btn btn-secondary">Сбросить фильтры</button>
+        </div>
+    </div>
+
+    <!-- Banner уведомлений -->
+    <div id="notification-banner" class="notification-banner hidden"></div>
 
     <main class="board-container">
         <div class="column" data-column-id="todo">
@@ -174,6 +206,9 @@
     <script src="js/services/realtimeService.js"></script>
     <script src="js/utils/dateUtils.js"></script>
     <script src="js/components/auth.js"></script>
+    <script src="js/components/search.js"></script>
+    <script src="js/components/filters.js"></script>
+    <script src="js/components/notifications.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
