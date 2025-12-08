@@ -3,8 +3,8 @@
 // ============================================================
 
 const CONFIG = {
-    // Supabase credentials
-    SUPABASE_URL: 'https://kxnlthfsxtrdswqriaan.supabase.co',
+    // Supabase credentials (через reverse proxy для обхода блокировок)
+    SUPABASE_URL: 'https://api.75vibe-coding.ru',
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4bmx0aGZzeHRyZHN3cXJpYWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2NzcxNzUsImV4cCI6MjA4MDI1MzE3NX0.amhB5yNMbrPUn3D0WtYQXwh65t4dFMt4SeUnk8QSRWI',
 
     // Префикс для таблиц (для изоляции от других приложений в том же проекте)
