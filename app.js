@@ -105,8 +105,22 @@ async function addCard(columnId, title, description, priority, startDate, endDat
         return;
     }
 
-    // Карточка автоматически добавится через Realtime событие INSERT
-    // Не нужно добавлять локально, чтобы избежать дублирования
+    // Добавить карточку в локальное состояние сразу после успешного создания
+    if (data) {
+        // Проверить, соответствует ли карточка текущим фильтрам
+        const shouldShow =
+            state.filters.selectedUser === 'all' ||
+            (state.filters.selectedUser === 'my' && data.user_id === state.user.id) ||
+            state.filters.selectedUser === data.user_id;
+
+        if (shouldShow) {
+            state.cards.push(data);
+            renderColumn(data.column_id);
+            updateCardCount(data.column_id);
+            // Обновить уведомления
+            NotificationsComponent.checkDeadlines(state.cards);
+        }
+    }
 }
 
 async function updateCard(cardId, title, description, priority, startDate, endDate) {
@@ -133,8 +147,30 @@ async function updateCard(cardId, title, description, priority, startDate, endDa
         return;
     }
 
-    // Карточка автоматически обновится через Realtime событие UPDATE
-    // Не нужно обновлять локально, чтобы избежать дублирования
+    // Обновить карточку в локальном состоянии сразу после успешного обновления
+    if (data) {
+        const index = state.cards.findIndex(c => c.id === cardId);
+        if (index !== -1) {
+            const oldColumnId = state.cards[index].column_id;
+            state.cards[index] = data;
+
+            // Перерендерить обе колонки если карточка переместилась
+            if (oldColumnId !== data.column_id) {
+                renderColumn(oldColumnId);
+                updateCardCount(oldColumnId);
+            }
+            renderColumn(data.column_id);
+            updateCardCount(data.column_id);
+
+            // Обновить уведомления
+            const urgentCards = NotificationsComponent.getUrgentCards(state.cards);
+            if (urgentCards.length > 0) {
+                NotificationsComponent.updateNotificationBanner(urgentCards);
+            } else {
+                NotificationsComponent.hideNotificationBanner();
+            }
+        }
+    }
 }
 
 async function deleteCard(cardId) {
@@ -157,8 +193,16 @@ async function deleteCard(cardId) {
         return;
     }
 
-    // Карточка автоматически удалится через Realtime событие DELETE
-    // Не нужно удалять локально, чтобы избежать дублирования
+    // Удалить карточку из локального состояния сразу после успешного удаления
+    const columnId = card.column_id;
+    const index = state.cards.findIndex(c => c.id === cardId);
+    if (index !== -1) {
+        state.cards.splice(index, 1);
+        renderColumn(columnId);
+        updateCardCount(columnId);
+        // Обновить уведомления
+        NotificationsComponent.checkDeadlines(state.cards);
+    }
 }
 
 
@@ -543,6 +587,13 @@ function setupRealtimeSubscription() {
 
     RealtimeService.subscribe({
         onInsert: (newCard) => {
+            // Проверить, не добавлена ли уже карточка локально (чтобы избежать дублирования)
+            const exists = state.cards.some(c => c.id === newCard.id);
+            if (exists) {
+                console.log('Карточка уже существует локально, пропускаем INSERT событие');
+                return;
+            }
+
             // Добавить карточку если она соответствует фильтру пользователя
             const shouldShow =
                 state.filters.selectedUser === 'all' ||
