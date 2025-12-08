@@ -27,14 +27,52 @@ const NotificationsComponent = {
             if (Notification.permission === 'granted') {
                 this.notificationsEnabled = true;
             } else if (Notification.permission !== 'denied') {
-                // Запросить разрешение (только если не было отказано)
-                const permission = await Notification.requestPermission();
-                this.notificationsEnabled = permission === 'granted';
+                // НЕ запрашивать разрешение автоматически!
+                // Это блокирует Яндекс браузер
+                this.notificationsEnabled = false;
             }
         }
 
         console.log('✅ Notifications component инициализирован');
         console.log(`📢 Browser notifications: ${this.notificationsEnabled ? 'включены' : 'выключены'}`);
+    },
+
+    /**
+     * Запросить разрешение на уведомления (вызывать при действии пользователя)
+     */
+    async requestPermission() {
+        if (!('Notification' in window)) {
+            console.warn('Browser не поддерживает Notifications API');
+            return false;
+        }
+
+        if (Notification.permission === 'granted') {
+            this.notificationsEnabled = true;
+            return true;
+        }
+
+        if (Notification.permission === 'denied') {
+            console.warn('Пользователь отклонил разрешение на уведомления');
+            return false;
+        }
+
+        try {
+            // Таймаут для защиты от зависания
+            const permissionPromise = Notification.requestPermission();
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout')), 3000)
+            );
+
+            const permission = await Promise.race([permissionPromise, timeoutPromise]);
+            this.notificationsEnabled = permission === 'granted';
+
+            console.log(this.notificationsEnabled ? '✅ Разрешение получено' : '⚠️ Разрешение отклонено');
+            return this.notificationsEnabled;
+        } catch (error) {
+            console.warn('Ошибка при запросе разрешения:', error);
+            this.notificationsEnabled = false;
+            return false;
+        }
     },
 
     /**

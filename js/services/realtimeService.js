@@ -13,6 +13,48 @@ const RealtimeService = {
         onDelete: null
     },
 
+    connectionStatus: 'disconnected',
+    reconnectAttempts: 0,
+    maxReconnectAttempts: 5,
+    reconnectDelay: 1000,
+    reconnectTimer: null,
+
+    updateConnectionIndicator(status) {
+        this.connectionStatus = status;
+
+        let indicator = document.getElementById('realtime-status');
+
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'realtime-status';
+            indicator.className = 'realtime-status';
+            document.body.appendChild(indicator);
+        }
+
+        indicator.className = `realtime-status ${status}`;
+
+        const statusMessages = {
+            'disconnected': '⚫ Realtime отключен',
+            'connecting': '🟡 Realtime подключается...',
+            'connected': '🟢 Realtime подключен',
+            'error': '🔴 Realtime ошибка'
+        };
+
+        indicator.textContent = statusMessages[status] || status;
+
+        if (status === 'connected') {
+            setTimeout(() => {
+                indicator.style.opacity = '0';
+                setTimeout(() => indicator.style.display = 'none', 300);
+            }, 2000);
+        } else {
+            indicator.style.display = 'block';
+            indicator.style.opacity = '1';
+        }
+
+        console.log(`📡 Realtime статус: ${status}`);
+    },
+
     /**
      * Подписаться на изменения таблицы kanban_cards
      * @param {Object} handlers - Обработчики событий {onInsert, onUpdate, onDelete}
@@ -22,6 +64,7 @@ const RealtimeService = {
         const client = getSupabaseClient();
         if (!client) {
             console.warn('Supabase не настроен, Realtime недоступен');
+            this.updateConnectionIndicator('error');
             return null;
         }
 
@@ -36,6 +79,8 @@ const RealtimeService = {
         if (this.subscription) {
             this.unsubscribe();
         }
+
+        this.updateConnectionIndicator('connecting');
 
         // Создать новую подписку
         this.subscription = client
@@ -82,18 +127,50 @@ const RealtimeService = {
                     }
                 }
             )
-            .subscribe((status) => {
+            .subscribe((status, error) => {
                 if (status === 'SUBSCRIBED') {
                     console.log('✅ Realtime подписка активна');
+                    this.updateConnectionIndicator('connected');
+                    this.reconnectAttempts = 0;
                 } else if (status === 'CHANNEL_ERROR') {
-                    console.error('❌ Ошибка Realtime подписки');
+                    console.error('❌ Ошибка Realtime:', error);
+                    this.updateConnectionIndicator('error');
+                    this.scheduleReconnect();
                 } else if (status === 'TIMED_OUT') {
-                    console.warn('⚠️ Realtime подписка истекла');
+                    console.warn('⚠️ Realtime timeout');
+                    this.updateConnectionIndicator('error');
+                    this.scheduleReconnect();
+                } else if (status === 'CLOSED') {
+                    console.warn('📡 Realtime закрыт');
+                    this.updateConnectionIndicator('disconnected');
+                    this.scheduleReconnect();
                 }
             });
 
         console.log('📡 Realtime подписка создана');
         return this.subscription;
+    },
+
+    scheduleReconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error(`❌ Превышено макс. попыток переподключения (${this.maxReconnectAttempts})`);
+            this.updateConnectionIndicator('error');
+            return;
+        }
+
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+        }
+
+        const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
+        this.reconnectAttempts++;
+
+        console.log(`🔄 Переподключение через ${delay/1000}s (попытка ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+
+        this.reconnectTimer = setTimeout(() => {
+            console.log('🔄 Попытка переподключения...');
+            this.subscribe(this.callbacks);
+        }, delay);
     },
 
     /**
@@ -111,6 +188,13 @@ const RealtimeService = {
                 onUpdate: null,
                 onDelete: null
             };
+            this.updateConnectionIndicator('disconnected');
+
+            if (this.reconnectTimer) {
+                clearTimeout(this.reconnectTimer);
+                this.reconnectTimer = null;
+            }
+
             console.log('📡 Realtime подписка отменена');
         }
     },

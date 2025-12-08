@@ -25,11 +25,21 @@ const AuthService = {
 
             const { data, error } = await client.auth.signUp({
                 email,
-                password,
+                password
             });
 
             if (error) {
                 console.error('Sign up error:', error);
+
+                // Обработка сетевых ошибок
+                if (error.message.includes('Failed to fetch') ||
+                    error.message.includes('NetworkError')) {
+                    return {
+                        user: null,
+                        error: new Error('Не удается подключиться к серверу. Supabase может быть заблокирован. Попробуйте VPN.')
+                    };
+                }
+
                 return { user: null, error };
             }
 
@@ -38,6 +48,15 @@ const AuthService = {
 
         } catch (error) {
             console.error('❌ Sign up failed:', error);
+
+            if (error.message.includes('Failed to fetch') ||
+                error.message.includes('NetworkError')) {
+                return {
+                    user: null,
+                    error: new Error('Не удается подключиться к серверу. Возможно, сервис заблокирован в вашем регионе.')
+                };
+            }
+
             return { user: null, error };
         }
     },
@@ -60,19 +79,38 @@ const AuthService = {
 
             const { data, error } = await client.auth.signInWithPassword({
                 email,
-                password,
+                password
             });
 
             if (error) {
                 console.error('Sign in error:', error);
+
+                // Обработка сетевых ошибок
+                if (error.message.includes('Failed to fetch') ||
+                    error.message.includes('NetworkError')) {
+                    return {
+                        user: null,
+                        error: new Error('Не удается подключиться к серверу. Supabase может быть заблокирован. Попробуйте VPN.')
+                    };
+                }
+
                 return { user: null, error };
             }
 
-            console.log('✅ User signed in successfully:', data.user?.email);
+            console.log('✅ User signed in:', data.user?.email);
             return { user: data.user, error: null };
 
         } catch (error) {
             console.error('❌ Sign in failed:', error);
+
+            if (error.message.includes('Failed to fetch') ||
+                error.message.includes('NetworkError')) {
+                return {
+                    user: null,
+                    error: new Error('Не удается подключиться к серверу. Возможно, сервис заблокирован в вашем регионе.')
+                };
+            }
+
             return { user: null, error };
         }
     },

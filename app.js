@@ -628,7 +628,7 @@ async function loadAndPopulateUsers() {
 
 async function initializeApp() {
     // Инициализация Supabase
-    initializeSupabase();
+    await initializeSupabase();
 
     // Тестирование подключения к Supabase
     if (typeof testSupabaseConnection === 'function') {
@@ -662,6 +662,32 @@ async function initializeApp() {
 
     // 3. Уведомления
     await NotificationsComponent.init();
+
+    // Показать баннер если уведомления не включены
+    if (!NotificationsComponent.notificationsEnabled &&
+        'Notification' in window &&
+        Notification.permission === 'default') {
+
+        const banner = document.getElementById('notification-banner');
+        if (banner) {
+            banner.innerHTML = `
+                <span>📢 Включите уведомления, чтобы не пропустить важные дедлайны</span>
+                <button id="enable-notifications-btn" class="btn btn-primary"
+                        style="margin-left: 12px; padding: 6px 12px; font-size: 0.875rem;">
+                    Включить
+                </button>
+            `;
+            banner.className = 'notification-banner info';
+            banner.classList.remove('hidden');
+
+            document.getElementById('enable-notifications-btn')?.addEventListener('click', async () => {
+                const granted = await NotificationsComponent.requestPermission();
+                if (granted) {
+                    banner.classList.add('hidden');
+                }
+            });
+        }
+    }
 
     // 4. Drag & Drop
     if (typeof DragDropComponent !== 'undefined') {
