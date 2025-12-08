@@ -40,3 +40,15 @@ build/
 # Temporary files
 *.tmp
 *.temp
+
+# Deployment files (security)
+deploy.config
+.deploy_history
+deploy.log
+*.backup
+
+# SSH keys (never commit)
+*.pem
+*.key
+id_rsa*
+id_ed25519*

@@ -1,0 +1,33 @@
+# Deployment Configuration Example
+# Copy this to deploy.config and customize
+# DO NOT commit deploy.config to git (it contains sensitive data)
+
+# SSH Configuration
+SSH_USER="root"
+SSH_HOST="88.218.168.98"
+SSH_KEY="$HOME/.ssh/kanban_deploy"
+
+# Server Paths
+DEPLOY_PATH="/var/www/kanban.75vibe-coding.ru"
+BACKUP_DIR="/var/www/backups"
+
+# Git Configuration
+GITHUB_REPO="https://github.com/Natta75/kanban.git"
+GIT_BRANCH="main"
+
+# Backup Configuration
+KEEP_BACKUPS=5
+
+# Nginx Configuration
+NGINX_RELOAD=true
+
+# Application URL for health checks
+APP_URL="https://kanban.75vibe-coding.ru"
+
+# Critical files to check after deployment
+CRITICAL_FILES=(
+    "index.html"
+    "js/config.js"
+    "css/main.css"
+    "app.js"
+)
