@@ -133,11 +133,17 @@ const CardService = {
                 .eq('id', cardId)
                 .eq('user_id', currentUser.id) // Можно обновлять только свои карточки
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) {
                 console.error('Error updating card:', error);
                 return { data: null, error };
+            }
+
+            // Если карточка не найдена (RLS заблокировала или карточка не существует)
+            if (!data) {
+                console.error('Card not found or access denied:', cardId);
+                return { data: null, error: new Error('Карточка не найдена или доступ запрещен') };
             }
 
             console.log('✅ Карточка обновлена:', cardId);
@@ -214,11 +220,17 @@ const CardService = {
                 .eq('id', cardId)
                 .eq('user_id', currentUser.id)
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) {
                 console.error('Error moving card:', error);
                 return { data: null, error };
+            }
+
+            // Если карточка не найдена (RLS заблокировала или карточка не существует)
+            if (!data) {
+                console.error('Card not found or access denied:', cardId);
+                return { data: null, error: new Error('Карточка не найдена или доступ запрещен') };
             }
 
             console.log('✅ Карточка перемещена:', cardId, '→', newColumnId);
