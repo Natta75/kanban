@@ -53,10 +53,16 @@ const DateUtils = {
     /**
      * Проверка, просрочена ли задача
      * @param {string|Date} endDate - Дата окончания
+     * @param {string|null} columnId - ID колонки (для проверки Done)
      * @returns {boolean} true если задача просрочена
      */
-    isOverdue(endDate) {
+    isOverdue(endDate, columnId = null) {
         if (!endDate) return false;
+
+        // Карточки в Done не просрочены
+        if (columnId === CONFIG.COLUMNS.DONE) {
+            return false;
+        }
 
         const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
         const now = new Date();
@@ -106,10 +112,16 @@ const DateUtils = {
     /**
      * Получить текстовое описание статуса дедлайна
      * @param {string|Date} endDate - Дата окончания
+     * @param {string|null} columnId - ID колонки (для проверки Done)
      * @returns {string} Описание статуса ("Просрочено", "Сегодня", "Завтра", "3 дня")
      */
-    getDeadlineStatus(endDate) {
+    getDeadlineStatus(endDate, columnId = null) {
         if (!endDate) return '';
+
+        // Карточки в Done всегда "Выполнено"
+        if (columnId === CONFIG.COLUMNS.DONE) {
+            return 'Выполнено';
+        }
 
         const days = this.daysUntilDeadline(endDate);
 
@@ -125,12 +137,18 @@ const DateUtils = {
     /**
      * Получить CSS класс для статуса дедлайна
      * @param {string|Date} endDate - Дата окончания
-     * @returns {string} CSS класс ('overdue', 'approaching', '')
+     * @param {string|null} columnId - ID колонки (для проверки Done)
+     * @returns {string} CSS класс ('overdue', 'approaching', 'completed', '')
      */
-    getDeadlineClass(endDate) {
+    getDeadlineClass(endDate, columnId = null) {
         if (!endDate) return '';
 
-        if (this.isOverdue(endDate)) {
+        // Карточки в Done получают класс 'completed'
+        if (columnId === CONFIG.COLUMNS.DONE) {
+            return 'completed';
+        }
+
+        if (this.isOverdue(endDate, columnId)) {
             return 'overdue';
         }
 
@@ -167,12 +185,18 @@ const DateUtils = {
     /**
      * Получить иконку для даты в зависимости от статуса
      * @param {string|Date} endDate - Дата окончания
+     * @param {string|null} columnId - ID колонки (для проверки Done)
      * @returns {string} HTML код иконки
      */
-    getDateIcon(endDate) {
+    getDateIcon(endDate, columnId = null) {
         if (!endDate) return '📅';
 
-        if (this.isOverdue(endDate)) {
+        // Карточки в Done получают зеленую метку
+        if (columnId === CONFIG.COLUMNS.DONE) {
+            return '🟢';
+        }
+
+        if (this.isOverdue(endDate, columnId)) {
             return '🔴';
         }
 

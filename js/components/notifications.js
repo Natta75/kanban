@@ -140,7 +140,10 @@ const NotificationsComponent = {
         return cards.filter(card => {
             if (!card.end_date) return false;
 
-            const isOverdue = DateUtils.isOverdue(card.end_date);
+            // Исключить Done карточки
+            if (card.column_id === CONFIG.COLUMNS.DONE) return false;
+
+            const isOverdue = DateUtils.isOverdue(card.end_date, card.column_id);
             const isApproaching = DateUtils.isApproachingDeadline(card.end_date);
 
             return isOverdue || isApproaching;
@@ -154,7 +157,8 @@ const NotificationsComponent = {
      */
     getOverdueCount(cards) {
         return cards.filter(card => {
-            return card.end_date && DateUtils.isOverdue(card.end_date);
+            if (card.column_id === CONFIG.COLUMNS.DONE) return false;
+            return card.end_date && DateUtils.isOverdue(card.end_date, card.column_id);
         }).length;
     },
 
@@ -176,7 +180,7 @@ const NotificationsComponent = {
 
         this.lastNotificationTime = now;
 
-        const overdueCount = urgentCards.filter(card => DateUtils.isOverdue(card.end_date)).length;
+        const overdueCount = urgentCards.filter(card => DateUtils.isOverdue(card.end_date, card.column_id)).length;
         const approachingCount = urgentCards.length - overdueCount;
 
         let title = '';
@@ -215,7 +219,7 @@ const NotificationsComponent = {
             return;
         }
 
-        const overdueCount = urgentCards.filter(card => DateUtils.isOverdue(card.end_date)).length;
+        const overdueCount = urgentCards.filter(card => DateUtils.isOverdue(card.end_date, card.column_id)).length;
         const approachingCount = urgentCards.length - overdueCount;
 
         let message = '';
