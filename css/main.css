@@ -296,6 +296,31 @@ header {
     display: none;
 }
 
+/* Ссылки в описании карточек */
+.card-description a {
+    color: var(--primary);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(33, 150, 243, 0.3);
+    transition: all var(--transition-fast);
+    word-break: break-word;
+    cursor: pointer;
+}
+
+.card-description a:hover {
+    color: var(--primary-dark);
+    border-bottom-color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.card-description a:active {
+    opacity: 0.8;
+}
+
+.card-description a:visited {
+    color: #7B68EE;
+    border-bottom-color: rgba(123, 104, 238, 0.3);
+}
+
 .card-actions {
     display: flex;
     gap: var(--space-sm);

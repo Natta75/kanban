@@ -258,7 +258,11 @@ function createCardElement(card) {
 
     const descriptionDiv = document.createElement('div');
     descriptionDiv.className = 'card-description';
-    descriptionDiv.textContent = card.description;
+
+    if (card.description) {
+        const contentFragment = URLUtils.renderDescriptionWithLinks(card.description);
+        descriptionDiv.appendChild(contentFragment);
+    }
 
     // Метаданные карточки (приоритет и даты)
     const metaDiv = document.createElement('div');
