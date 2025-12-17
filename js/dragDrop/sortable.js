@@ -64,21 +64,19 @@ const DragDropComponent = {
             touchStartThreshold: 3, // Минимальное движение для начала drag (px)
             forceFallback: false,   // Использовать нативный HTML5 drag & drop где возможно
 
-            // Фильтр: не дублировать перетаскивание на кнопках и заблокировать чужие карточки
-            filter: function(evt, target) {
-                // Блокировать кнопки и инпуты
-                if (target.matches('.card-btn, button, input, select, textarea')) {
-                    return true;
-                }
+            // Фильтр: блокировать перетаскивание чужих карточек и кнопок/инпутов
+            // Используем CSS селектор для надежной блокировки
+            filter: '.card[data-is-owner="false"], .card-btn, button, input, select, textarea',
 
-                // Блокировать чужие карточки
-                const card = target.closest('.card');
-                if (card && card.dataset.isOwner === 'false') {
+            // Предотвратить событие click на отфильтрованных элементах
+            preventOnFilter: true,
+
+            // Callback при попытке перетащить отфильтрованный элемент
+            onFilter: function(evt) {
+                const draggedElement = evt.item;
+                if (draggedElement && draggedElement.dataset.isOwner === 'false') {
                     console.warn('⛔ Нельзя перемещать чужие карточки');
-                    return true; // Блокировать drag
                 }
-
-                return false; // Разрешить drag
             },
 
             // Handle: вся карточка является областью для drag
