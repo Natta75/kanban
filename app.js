@@ -236,6 +236,10 @@ function createCardElement(card) {
     cardDiv.className = 'card';
     cardDiv.dataset.cardId = card.id;
 
+    // Добавить атрибут владельца для проверки прав на drag
+    const isOwner = state.user && card.user_id === state.user.id;
+    cardDiv.dataset.isOwner = isOwner;
+
     // Добавить класс приоритета для цветной границы
     if (card.priority) {
         cardDiv.classList.add(`priority-${card.priority}`);
@@ -309,20 +313,31 @@ function createCardElement(card) {
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'card-actions';
 
-    // Кнопка редактирования
-    const editBtn = document.createElement('button');
-    editBtn.className = 'card-btn btn-edit';
-    editBtn.textContent = 'Редактировать';
-    editBtn.onclick = () => openEditModal(card.id);
+    // Показывать кнопки только для своих карточек
+    if (isOwner) {
+        // Кнопка редактирования
+        const editBtn = document.createElement('button');
+        editBtn.className = 'card-btn btn-edit';
+        editBtn.textContent = 'Редактировать';
+        editBtn.onclick = () => openEditModal(card.id);
 
-    // Кнопка удаления
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'card-btn btn-delete';
-    deleteBtn.textContent = 'Удалить';
-    deleteBtn.onclick = () => deleteCard(card.id);
+        // Кнопка удаления
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'card-btn btn-delete';
+        deleteBtn.textContent = 'Удалить';
+        deleteBtn.onclick = () => deleteCard(card.id);
 
-    actionsDiv.appendChild(editBtn);
-    actionsDiv.appendChild(deleteBtn);
+        actionsDiv.appendChild(editBtn);
+        actionsDiv.appendChild(deleteBtn);
+    } else {
+        // Для чужих карточек показать автора
+        const ownerLabel = document.createElement('span');
+        ownerLabel.className = 'card-owner-label';
+        ownerLabel.textContent = '👤 Карточка другого пользователя';
+        ownerLabel.style.fontSize = '0.875rem';
+        ownerLabel.style.color = '#666';
+        actionsDiv.appendChild(ownerLabel);
+    }
 
     cardDiv.appendChild(titleDiv);
     cardDiv.appendChild(descriptionDiv);

@@ -166,6 +166,28 @@
 }
 
 /* ============================================================
+   Чужие карточки - визуальный индикатор
+   ============================================================ */
+.card[data-is-owner="false"] {
+    opacity: 0.85;
+    cursor: not-allowed !important;
+}
+
+.card[data-is-owner="false"]:hover {
+    transform: none !important;
+    cursor: not-allowed !important;
+}
+
+.card[data-is-owner="false"]::after {
+    content: '🔒';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 0.875rem;
+    opacity: 0.6;
+}
+
+/* ============================================================
    Адаптивность для маленьких экранов
    ============================================================ */
 @media (max-width: 640px) {
