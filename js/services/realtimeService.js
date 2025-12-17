@@ -127,13 +127,13 @@ const RealtimeService = {
                     }
                 }
             )
-            .subscribe((status, error) => {
+            .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
                     console.log('✅ Realtime подписка активна');
                     this.updateConnectionIndicator('connected');
                     this.reconnectAttempts = 0;
                 } else if (status === 'CHANNEL_ERROR') {
-                    console.error('❌ Ошибка Realtime:', error);
+                    console.error('❌ Ошибка Realtime подписки:', status);
                     this.updateConnectionIndicator('error');
                     this.scheduleReconnect();
                 } else if (status === 'TIMED_OUT') {
@@ -154,7 +154,19 @@ const RealtimeService = {
     scheduleReconnect() {
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             console.error(`❌ Превышено макс. попыток переподключения (${this.maxReconnectAttempts})`);
+            console.warn('💡 Realtime отключен. Обновления будут синхронизироваться при перезагрузке страницы.');
             this.updateConnectionIndicator('error');
+
+            // Показать уведомление пользователю
+            const banner = document.getElementById('notification-banner');
+            if (banner && !banner.textContent.includes('подключения')) {
+                const existingContent = banner.textContent;
+                if (existingContent && !existingContent.includes('Realtime')) {
+                    banner.textContent = existingContent + ' | ⚠️ Realtime отключен - обновления не синхронизируются автоматически.';
+                    banner.className = 'notification-banner warning';
+                    banner.classList.remove('hidden');
+                }
+            }
             return;
         }
 

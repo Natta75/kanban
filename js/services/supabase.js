@@ -131,6 +131,14 @@ async function initializeSupabase() {
                 realtime: {
                     params: {
                         eventsPerSecond: 10
+                    },
+                    // Таймауты для более быстрого восстановления соединения
+                    timeout: 10000,
+                    heartbeatIntervalMs: 15000
+                },
+                global: {
+                    headers: {
+                        'X-Client-Info': 'kanban-app'
                     }
                 }
             }

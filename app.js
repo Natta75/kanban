@@ -770,8 +770,33 @@ async function initializeApp() {
                 alert('Не удалось переместить карточку: ' + error.message);
                 // Перерендерить чтобы вернуть карточку на место
                 renderBoard();
+                return;
             }
-            // Обновление через Realtime произойдет автоматически
+
+            // Обновить локальное состояние немедленно (не ждать Realtime)
+            if (data) {
+                const index = state.cards.findIndex(c => c.id === cardId);
+                if (index !== -1) {
+                    const oldColumnId = state.cards[index].column_id;
+                    state.cards[index] = data;
+
+                    // Перерендерить обе колонки если карточка переместилась
+                    if (oldColumnId !== newColumnId) {
+                        renderColumn(oldColumnId);
+                        updateCardCount(oldColumnId);
+                    }
+                    renderColumn(newColumnId);
+                    updateCardCount(newColumnId);
+
+                    // Обновить уведомления
+                    const urgentCards = NotificationsComponent.getUrgentCards(state.cards);
+                    if (urgentCards.length > 0) {
+                        NotificationsComponent.updateNotificationBanner(urgentCards);
+                    } else {
+                        NotificationsComponent.hideNotificationBanner();
+                    }
+                }
+            }
         });
     }
 
