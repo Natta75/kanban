@@ -219,8 +219,9 @@ const FiltersComponent = {
      * Добавить пользователей в выпадающий список
      * @param {Array} userIds - Массив ID пользователей
      * @param {string} currentUserId - ID текущего пользователя
+     * @param {Object} profiles - Объект с профилями { userId: { nickname, email } }
      */
-    populateUserFilter(userIds, currentUserId) {
+    populateUserFilter(userIds, currentUserId, profiles = {}) {
         if (!this.userFilter) return;
 
         // Сохраняем текущее значение
@@ -237,8 +238,16 @@ const FiltersComponent = {
             if (userId !== currentUserId) {
                 const option = document.createElement('option');
                 option.value = userId;
-                // Показываем первые 8 символов ID для идентификации
-                option.textContent = `👨‍💼 Пользователь ${userId.substring(0, 8)}...`;
+
+                // Попытаться показать никнейм вместо UUID
+                const profile = profiles[userId];
+                if (profile && profile.nickname) {
+                    option.textContent = `👨‍💼 ${profile.nickname}`;
+                } else {
+                    // Fallback к UUID если профиль не найден
+                    option.textContent = `👨‍💼 Пользователь ${userId.substring(0, 8)}...`;
+                }
+
                 this.userFilter.appendChild(option);
             }
         });

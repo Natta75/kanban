@@ -37,6 +37,7 @@
                 <!-- Показывается когда пользователь авторизован -->
                 <div id="user-profile" class="user-profile hidden">
                     <span class="user-email" id="user-email"></span>
+                    <button class="btn btn-outline" id="settings-btn">Настройки</button>
                     <button class="btn btn-outline" id="logout-btn">Выйти</button>
                 </div>
             </div>
@@ -138,6 +139,17 @@
                         autocomplete="current-password"
                     >
                 </div>
+                <div class="form-group hidden" id="auth-nickname-group">
+                    <label for="auth-nickname">Никнейм (опционально)</label>
+                    <input
+                        type="text"
+                        id="auth-nickname"
+                        name="nickname"
+                        placeholder="Как вас называть? (если не указан, будет использован email)"
+                        maxlength="50"
+                        autocomplete="off"
+                    >
+                </div>
                 <div id="auth-error" class="auth-error hidden"></div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-cancel" id="auth-cancel-btn">Отмена</button>
@@ -148,6 +160,40 @@
                 <span id="auth-toggle-text">Нет аккаунта?</span>
                 <button type="button" class="btn-link" id="auth-toggle-btn">Зарегистрироваться</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно настроек профиля -->
+    <div id="settings-modal-overlay" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Настройки профиля</h2>
+                <button class="close-btn" id="close-settings-modal" aria-label="Закрыть">&times;</button>
+            </div>
+            <form id="settings-form">
+                <div class="form-group">
+                    <label for="settings-email">Email</label>
+                    <p id="settings-email" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;"></p>
+                </div>
+                <div class="form-group">
+                    <label for="settings-nickname">Никнейм *</label>
+                    <input
+                        type="text"
+                        id="settings-nickname"
+                        name="nickname"
+                        placeholder="Введите никнейм (3-50 символов)"
+                        required
+                        minlength="3"
+                        maxlength="50"
+                        autocomplete="off"
+                    >
+                </div>
+                <div id="settings-error" class="auth-error hidden"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" id="settings-cancel-btn">Отмена</button>
+                    <button type="submit" class="btn btn-primary" id="settings-submit-btn">Сохранить</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -216,11 +262,13 @@
     <script src="js/config.js"></script>
     <script src="js/services/supabase.js"></script>
     <script src="js/services/authService.js"></script>
+    <script src="js/services/profileService.js"></script>
     <script src="js/services/cardService.js"></script>
     <script src="js/services/realtimeService.js"></script>
     <script src="js/utils/dateUtils.js?v=2"></script>
     <script src="js/utils/urlUtils.js?v=2"></script>
     <script src="js/components/auth.js"></script>
+    <script src="js/components/settings.js"></script>
     <script src="js/components/search.js"></script>
     <script src="js/components/filters.js"></script>
     <script src="js/components/notifications.js?v=2"></script>

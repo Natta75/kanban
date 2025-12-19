@@ -12,6 +12,8 @@ const AuthUI = {
     form: null,
     emailInput: null,
     passwordInput: null,
+    nicknameInput: null,
+    nicknameGroup: null,
     submitBtn: null,
     cancelBtn: null,
     toggleBtn: null,
@@ -23,6 +25,7 @@ const AuthUI = {
     userEmail: null,
     logoutBtn: null,
     showLoginBtn: null,
+    settingsBtn: null,
 
     // Состояние
     isLoginMode: true, // true = вход, false = регистрация
@@ -44,6 +47,8 @@ const AuthUI = {
         this.form = document.getElementById('auth-form');
         this.emailInput = document.getElementById('auth-email');
         this.passwordInput = document.getElementById('auth-password');
+        this.nicknameInput = document.getElementById('auth-nickname');
+        this.nicknameGroup = document.getElementById('auth-nickname-group');
         this.submitBtn = document.getElementById('auth-submit-btn');
         this.cancelBtn = document.getElementById('auth-cancel-btn');
         this.toggleBtn = document.getElementById('auth-toggle-btn');
@@ -55,6 +60,7 @@ const AuthUI = {
         this.userEmail = document.getElementById('user-email');
         this.logoutBtn = document.getElementById('logout-btn');
         this.showLoginBtn = document.getElementById('show-login-btn');
+        this.settingsBtn = document.getElementById('settings-btn');
     },
 
     /**
@@ -90,6 +96,9 @@ const AuthUI = {
 
         // Выход
         this.logoutBtn?.addEventListener('click', () => this.handleLogout());
+
+        // Настройки
+        this.settingsBtn?.addEventListener('click', () => this.openSettings());
     },
 
     /**
@@ -143,11 +152,19 @@ const AuthUI = {
             this.submitBtn.textContent = 'Войти';
             this.toggleText.textContent = 'Нет аккаунта?';
             this.toggleBtn.textContent = 'Зарегистрироваться';
+            // Скрыть поле никнейма при входе
+            if (this.nicknameGroup) {
+                this.nicknameGroup.classList.add('hidden');
+            }
         } else {
             this.modalTitle.textContent = 'Регистрация';
             this.submitBtn.textContent = 'Зарегистрироваться';
             this.toggleText.textContent = 'Уже есть аккаунт?';
             this.toggleBtn.textContent = 'Войти';
+            // Показать поле никнейма при регистрации
+            if (this.nicknameGroup) {
+                this.nicknameGroup.classList.remove('hidden');
+            }
         }
     },
 
@@ -165,6 +182,26 @@ const AuthUI = {
             return;
         }
 
+        // При регистрации получить никнейм
+        let nickname = null;
+        if (!this.isLoginMode) {
+            nickname = this.nicknameInput?.value.trim();
+
+            // Если никнейм не указан, сгенерировать из email
+            if (!nickname && typeof ProfileService !== 'undefined') {
+                nickname = ProfileService.generateNicknameFromEmail(email);
+            }
+
+            // Валидация никнейма
+            if (nickname && typeof ProfileService !== 'undefined') {
+                const validation = ProfileService.validateNickname(nickname);
+                if (!validation.valid) {
+                    this.showError(validation.error);
+                    return;
+                }
+            }
+        }
+
         this.setLoading(true);
         this.clearError();
 
@@ -174,6 +211,22 @@ const AuthUI = {
                 result = await AuthService.signIn(email, password);
             } else {
                 result = await AuthService.signUp(email, password);
+
+                // После успешной регистрации создать профиль
+                if (result.user && !result.error && nickname && typeof ProfileService !== 'undefined') {
+                    console.log('Creating profile for new user:', result.user.id);
+
+                    const { error: profileError } = await ProfileService.createProfile(
+                        result.user.id,
+                        nickname,
+                        email
+                    );
+
+                    if (profileError) {
+                        console.error('Failed to create profile:', profileError);
+                        // Не показываем ошибку пользователю, профиль можно создать позже
+                    }
+                }
             }
 
             if (result.error) {
@@ -223,12 +276,40 @@ const AuthUI = {
             // Пользователь авторизован
             this.authButtons?.classList.add('hidden');
             this.userProfile?.classList.remove('hidden');
-            this.userEmail.textContent = user.email;
+
+            // Попытаться загрузить профиль и показать никнейм
+            if (typeof ProfileService !== 'undefined') {
+                const { data: profile } = await ProfileService.getProfile(user.id);
+                if (profile && profile.nickname) {
+                    this.userEmail.textContent = profile.nickname;
+                } else {
+                    this.userEmail.textContent = user.email;
+                }
+            } else {
+                this.userEmail.textContent = user.email;
+            }
         } else {
             // Пользователь не авторизован
             this.authButtons?.classList.remove('hidden');
             this.userProfile?.classList.add('hidden');
             this.userEmail.textContent = '';
+        }
+    },
+
+    /**
+     * Открыть настройки профиля
+     */
+    async openSettings() {
+        const user = await AuthService.getCurrentUser();
+        if (!user) {
+            alert('Необходима авторизация');
+            return;
+        }
+
+        if (typeof SettingsComponent !== 'undefined') {
+            SettingsComponent.openModal(user);
+        } else {
+            console.error('SettingsComponent not found');
         }
     },
 
@@ -262,6 +343,9 @@ const AuthUI = {
         this.submitBtn.disabled = isLoading;
         this.emailInput.disabled = isLoading;
         this.passwordInput.disabled = isLoading;
+        if (this.nicknameInput) {
+            this.nicknameInput.disabled = isLoading;
+        }
 
         if (isLoading) {
             this.submitBtn.textContent = 'Загрузка...';

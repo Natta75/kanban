@@ -166,7 +166,63 @@ CREATE TRIGGER update_kanban_user_preferences_updated_at
 
 
 -- ============================================================
--- 7. ТЕСТОВЫЕ ДАННЫЕ (опционально - закомментировано)
+-- 7. ТАБЛИЦА: kanban_user_profiles (ЭТАП 1)
+-- ============================================================
+-- Профили пользователей с никнеймами
+
+CREATE TABLE kanban_user_profiles (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  nickname VARCHAR(50) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+COMMENT ON TABLE kanban_user_profiles IS 'Профили пользователей с никнеймами';
+COMMENT ON COLUMN kanban_user_profiles.nickname IS 'Уникальный никнейм пользователя (3-50 символов)';
+
+
+-- ============================================================
+-- 8. RLS ПОЛИТИКИ для kanban_user_profiles
+-- ============================================================
+
+-- Включить RLS
+ALTER TABLE kanban_user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Все могут читать профили
+CREATE POLICY "Профили видны всем" ON kanban_user_profiles
+  FOR SELECT USING (true);
+
+-- Пользователь может создавать только свой профиль
+CREATE POLICY "Создание только своего профиля" ON kanban_user_profiles
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Пользователь может обновлять только свой профиль
+CREATE POLICY "Обновление только своего профиля" ON kanban_user_profiles
+  FOR UPDATE USING (auth.uid() = user_id);
+
+
+-- ============================================================
+-- 9. ИНДЕКСЫ для kanban_user_profiles
+-- ============================================================
+
+-- Индекс для поиска по nickname
+CREATE INDEX idx_user_profiles_nickname ON kanban_user_profiles(nickname);
+
+
+-- ============================================================
+-- 10. ТРИГГЕР для kanban_user_profiles
+-- ============================================================
+
+-- Триггер автообновления updated_at
+CREATE TRIGGER update_user_profiles_updated_at
+  BEFORE UPDATE ON kanban_user_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+
+-- ============================================================
+-- 11. ТЕСТОВЫЕ ДАННЫЕ (опционально - закомментировано)
 -- ============================================================
 
 -- Раскомментируйте, если хотите добавить тестовые данные
@@ -187,4 +243,5 @@ INSERT INTO kanban_cards (title, description, column_id, priority, user_id) VALU
 -- RLS политики обеспечивают безопасность данных
 -- Realtime включен для синхронизации
 -- Индексы обеспечивают быструю работу
+-- ЭТАП 1: Добавлена таблица профилей пользователей с никнеймами
 -- ============================================================

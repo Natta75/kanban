@@ -8,6 +8,8 @@ const state = {
     selectedCard: null,
     editMode: false,
     currentColumnForNewCard: null,
+    // Профили пользователей (для отображения никнеймов)
+    profiles: {}, // { userId: { nickname, email } }
     // Фильтры и поиск
     filters: {
         selectedUser: 'my', // 'my', 'all', или конкретный user_id
@@ -333,7 +335,15 @@ function createCardElement(card) {
         // Для чужих карточек показать автора
         const ownerLabel = document.createElement('span');
         ownerLabel.className = 'card-owner-label';
-        ownerLabel.textContent = '👤 Карточка другого пользователя';
+
+        // Попытаться показать никнейм владельца
+        const ownerProfile = state.profiles[card.user_id];
+        if (ownerProfile && ownerProfile.nickname) {
+            ownerLabel.textContent = `👤 Автор: ${ownerProfile.nickname}`;
+        } else {
+            ownerLabel.textContent = '👤 Карточка другого пользователя';
+        }
+
         ownerLabel.style.fontSize = '0.875rem';
         ownerLabel.style.color = '#666';
         actionsDiv.appendChild(ownerLabel);
@@ -674,6 +684,58 @@ function setupRealtimeSubscription() {
 // ============================================================
 
 // ============================================================
+// LOAD PROFILES
+// ============================================================
+
+async function loadProfiles() {
+    if (!state.user) {
+        console.log('Пользователь не авторизован, профили не загружаются');
+        return;
+    }
+
+    if (typeof ProfileService === 'undefined') {
+        console.warn('ProfileService not available');
+        return;
+    }
+
+    const { data: profiles, error } = await ProfileService.getAllProfiles();
+
+    if (error) {
+        console.error('Ошибка загрузки профилей:', error);
+        return;
+    }
+
+    // Преобразовать массив профилей в объект { userId: profile }
+    state.profiles = {};
+    if (profiles && profiles.length > 0) {
+        profiles.forEach(profile => {
+            state.profiles[profile.user_id] = {
+                nickname: profile.nickname,
+                email: profile.email
+            };
+        });
+    }
+
+    console.log(`✅ Загружено профилей: ${profiles.length}`);
+}
+
+// Глобальная функция для перезагрузки профилей (используется из SettingsComponent)
+window.reloadProfiles = async function() {
+    await loadProfiles();
+
+    // Обновить UI после загрузки профилей
+    if (state.user && typeof AuthUI !== 'undefined') {
+        await AuthUI.updateUIForAuthState(state.user);
+    }
+
+    // Перерендерить доску чтобы обновить никнеймы на карточках
+    renderBoard();
+
+    // Обновить фильтр пользователей
+    await loadAndPopulateUsers();
+};
+
+// ============================================================
 // LOAD AND POPULATE USERS
 // ============================================================
 
@@ -691,7 +753,8 @@ async function loadAndPopulateUsers() {
     }
 
     if (userIds && userIds.length > 0) {
-        FiltersComponent.populateUserFilter(userIds, state.user.id);
+        // Передать также профили для отображения никнеймов
+        FiltersComponent.populateUserFilter(userIds, state.user.id, state.profiles);
     }
 
     console.log(`✅ Пользователи добавлены в фильтр`);
@@ -735,7 +798,12 @@ async function initializeApp() {
         }
     });
 
-    // 3. Уведомления
+    // 3. Настройки профиля
+    if (typeof SettingsComponent !== 'undefined') {
+        SettingsComponent.init();
+    }
+
+    // 4. Уведомления
     await NotificationsComponent.init();
 
     // Показать баннер если уведомления не включены
@@ -764,7 +832,7 @@ async function initializeApp() {
         }
     }
 
-    // 4. Drag & Drop
+    // 5. Drag & Drop
     if (typeof DragDropComponent !== 'undefined') {
         DragDropComponent.init(async (cardId, newColumnId, newPosition) => {
             // Callback при перемещении карточки через drag & drop
@@ -836,6 +904,7 @@ async function initializeApp() {
                 // При входе - загрузить карточки и подключить Realtime
                 if (event === 'SIGNED_IN' && state.user) {
                     console.log('✅ Пользователь вошёл, загружаем карточки...');
+                    await loadProfiles();
                     await loadCardsFromSupabase();
                     await loadAndPopulateUsers();
                     // Подключить Realtime только если еще не подключен
@@ -862,6 +931,7 @@ async function initializeApp() {
     // Если пользователь авторизован - загрузить карточки
     if (state.user) {
         console.log('✅ Пользователь авторизован:', state.user.email);
+        await loadProfiles();
         await loadCardsFromSupabase();
         await loadAndPopulateUsers();
         setupRealtimeSubscription();
