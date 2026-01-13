@@ -677,6 +677,24 @@ function setupRealtimeSubscription() {
             }
         }
     });
+
+    // Подписка на события корзины
+    RealtimeService.subscribeToTrash({
+        onInsert: (trashItem) => {
+            console.log('Trash insert:', trashItem);
+            // Передать событие в компонент корзины
+            if (typeof TrashComponent !== 'undefined') {
+                TrashComponent.handleRealtimeInsert(trashItem);
+            }
+        },
+        onDelete: (trashItem) => {
+            console.log('Trash delete:', trashItem);
+            // Передать событие в компонент корзины
+            if (typeof TrashComponent !== 'undefined') {
+                TrashComponent.handleRealtimeDelete(trashItem);
+            }
+        }
+    });
 }
 
 // ============================================================
@@ -801,6 +819,11 @@ async function initializeApp() {
     // 3. Настройки профиля
     if (typeof SettingsComponent !== 'undefined') {
         SettingsComponent.init();
+    }
+
+    // 3.5. Корзина
+    if (typeof TrashComponent !== 'undefined') {
+        TrashComponent.init();
     }
 
     // 4. Уведомления

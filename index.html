@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/filters.css">
     <link rel="stylesheet" href="css/dragdrop.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/trash.css">
 </head>
 <body>
     <header>
@@ -37,6 +38,7 @@
                 <!-- Показывается когда пользователь авторизован -->
                 <div id="user-profile" class="user-profile hidden">
                     <span class="user-email" id="user-email"></span>
+                    <button class="btn btn-outline" id="trashBtn" title="Корзина">🗑️ Корзина</button>
                     <button class="btn btn-outline" id="settings-btn">Настройки</button>
                     <button class="btn btn-outline" id="logout-btn">Выйти</button>
                 </div>
@@ -252,6 +254,35 @@
         </div>
     </div>
 
+    <!-- Модальное окно корзины -->
+    <div id="trashModal" class="modal-overlay hidden">
+        <div class="modal trash-modal">
+            <div class="modal-header">
+                <h2>🗑️ Корзина</h2>
+                <button class="close-btn" id="closeTrash" aria-label="Закрыть">&times;</button>
+            </div>
+            <div class="trash-filters">
+                <div class="form-group">
+                    <label for="trashOwnerFilter">Показать:</label>
+                    <select id="trashOwnerFilter" class="filter-select">
+                        <option value="all">Все карточки</option>
+                        <option value="my">Только мои</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="trashSortBy">Сортировка:</label>
+                    <select id="trashSortBy" class="filter-select">
+                        <option value="deleted_at">По дате удаления</option>
+                        <option value="title">По названию</option>
+                    </select>
+                </div>
+            </div>
+            <div id="trashList" class="trash-list">
+                <!-- Карточки корзины будут добавлены здесь -->
+            </div>
+        </div>
+    </div>
+
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -264,11 +295,13 @@
     <script src="js/services/authService.js"></script>
     <script src="js/services/profileService.js"></script>
     <script src="js/services/cardService.js"></script>
+    <script src="js/services/trashService.js"></script>
     <script src="js/services/realtimeService.js"></script>
     <script src="js/utils/dateUtils.js?v=2"></script>
     <script src="js/utils/urlUtils.js?v=2"></script>
     <script src="js/components/auth.js?v=4"></script>
     <script src="js/components/settings.js?v=4"></script>
+    <script src="js/components/trash.js"></script>
     <script src="js/components/search.js"></script>
     <script src="js/components/filters.js"></script>
     <script src="js/components/notifications.js?v=2"></script>

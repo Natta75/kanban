@@ -7,9 +7,14 @@
  */
 const RealtimeService = {
     subscription: null,
+    trashSubscription: null,
     callbacks: {
         onInsert: null,
         onUpdate: null,
+        onDelete: null
+    },
+    trashCallbacks: {
+        onInsert: null,
         onDelete: null
     },
 
@@ -217,5 +222,89 @@ const RealtimeService = {
      */
     isSubscribed() {
         return this.subscription !== null;
+    },
+
+    /**
+     * Подписаться на изменения таблицы kanban_trash
+     * @param {Object} handlers - Обработчики событий {onInsert, onDelete}
+     * @returns {Object} Subscription объект
+     */
+    subscribeToTrash(handlers = {}) {
+        const client = getSupabaseClient();
+        if (!client) {
+            console.warn('Supabase не настроен, Realtime для корзины недоступен');
+            return null;
+        }
+
+        // Сохранить обработчики
+        this.trashCallbacks = {
+            onInsert: handlers.onInsert || null,
+            onDelete: handlers.onDelete || null
+        };
+
+        // Отписаться от предыдущей подписки, если есть
+        if (this.trashSubscription) {
+            this.unsubscribeFromTrash();
+        }
+
+        // Создать новую подписку
+        this.trashSubscription = client
+            .channel('kanban_trash_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: CONFIG.TABLES.TRASH
+                },
+                (payload) => {
+                    console.log('🗑️ Trash INSERT:', payload.new);
+                    if (this.trashCallbacks.onInsert) {
+                        this.trashCallbacks.onInsert(payload.new);
+                    }
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'DELETE',
+                    schema: 'public',
+                    table: CONFIG.TABLES.TRASH
+                },
+                (payload) => {
+                    console.log('♻️ Trash DELETE:', payload.old);
+                    if (this.trashCallbacks.onDelete) {
+                        this.trashCallbacks.onDelete(payload.old);
+                    }
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ Realtime подписка на корзину активна');
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error('❌ Ошибка Realtime подписки на корзину:', status);
+                }
+            });
+
+        console.log('📡 Realtime подписка на корзину создана');
+        return this.trashSubscription;
+    },
+
+    /**
+     * Отписаться от изменений корзины
+     */
+    unsubscribeFromTrash() {
+        if (this.trashSubscription) {
+            const client = getSupabaseClient();
+            if (client) {
+                client.removeChannel(this.trashSubscription);
+            }
+            this.trashSubscription = null;
+            this.trashCallbacks = {
+                onInsert: null,
+                onDelete: null
+            };
+            console.log('📡 Realtime подписка на корзину отменена');
+        }
     }
 };

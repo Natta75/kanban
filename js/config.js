@@ -57,7 +57,8 @@ const CONFIG = {
     // Имена таблиц (с префиксом)
     TABLES: {
         CARDS: 'kanban_cards',
-        USER_PREFERENCES: 'kanban_user_preferences'
+        USER_PREFERENCES: 'kanban_user_preferences',
+        TRASH: 'kanban_trash'
     }
 };
 

@@ -156,34 +156,21 @@ const CardService = {
     },
 
     /**
-     * Удалить карточку
+     * Удалить карточку (soft delete - перемещение в корзину)
      * @param {string} cardId - ID карточки
      * @returns {Promise<{error: Error|null}>}
      */
     async deleteCard(cardId) {
         try {
-            const client = getSupabaseClient();
-            if (!client) {
-                return { error: new Error('Supabase не настроен') };
-            }
-
-            const currentUser = await AuthService.getCurrentUser();
-            if (!currentUser) {
-                return { error: new Error('Необходима авторизация') };
-            }
-
-            const { error } = await client
-                .from(CONFIG.TABLES.CARDS)
-                .delete()
-                .eq('id', cardId)
-                .eq('user_id', currentUser.id); // Можно удалять только свои карточки
+            // Используем TrashService для soft delete
+            const { data, error } = await TrashService.moveToTrash(cardId);
 
             if (error) {
-                console.error('Error deleting card:', error);
+                console.error('Error moving card to trash:', error);
                 return { error };
             }
 
-            console.log('✅ Карточка удалена:', cardId);
+            console.log('✅ Карточка перемещена в корзину:', cardId);
             return { error: null };
 
         } catch (error) {
