@@ -26,7 +26,7 @@ CREATE TRIGGER update_completed_at
 
 -- Таблица корзины
 CREATE TABLE IF NOT EXISTS kanban_trash (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   card_id UUID NOT NULL,
   title VARCHAR(100) NOT NULL,
   description TEXT,
