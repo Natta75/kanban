@@ -263,11 +263,20 @@ const TrashService = {
             errors: []
         };
 
-        for (const cardId of cardIds) {
-            const { error } = await this.moveToTrash(cardId);
-            if (error) {
+        // Выполнить все удаления параллельно для ускорения
+        const promises = cardIds.map(cardId =>
+            this.moveToTrash(cardId)
+                .then(result => ({ cardId, result }))
+                .catch(error => ({ cardId, result: { error } }))
+        );
+
+        const settled = await Promise.all(promises);
+
+        // Подсчитать результаты
+        for (const { cardId, result } of settled) {
+            if (result.error) {
                 results.failed++;
-                results.errors.push({ cardId, error: error.message });
+                results.errors.push({ cardId, error: result.error.message || String(result.error) });
             } else {
                 results.success++;
             }

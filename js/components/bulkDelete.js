@@ -200,11 +200,8 @@ const BulkDeleteComponent = {
                 `Ошибок: ${results.failed}\n\n` +
                 `Некоторые карточки не удалось удалить.`
             );
-        } else {
-            NotificationsComponent.show(
-                `Успешно удалено ${results.success} карточек`,
-                'success'
-            );
+        } else if (results.success > 0) {
+            console.log(`✅ Успешно удалено ${results.success} карточек`);
         }
 
         this.closeDoneModal();

@@ -303,8 +303,7 @@ const TrashComponent = {
         // Обновить корзину
         await this.loadTrash();
 
-        // Показать уведомление
-        NotificationsComponent.show('Карточка восстановлена', 'success');
+        console.log('✅ Карточка восстановлена');
     },
 
     /**
@@ -326,8 +325,7 @@ const TrashComponent = {
         // Обновить корзину
         await this.loadTrash();
 
-        // Показать уведомление
-        NotificationsComponent.show('Карточка удалена навсегда', 'info');
+        console.log('✅ Карточка удалена навсегда');
     },
 
     /**
@@ -369,11 +367,15 @@ const TrashComponent = {
      * Обработать realtime событие INSERT в корзину
      */
     handleRealtimeInsert(payload) {
-        console.log('Trash insert:', payload);
-        // Если корзина открыта, обновить список
+        console.log('🗑️ Trash realtime INSERT:', payload);
+
+        // Добавить новый элемент в начало массива
+        this.trashItems.unshift(payload);
+
+        // Если корзина открыта, обновить отображение
         const modal = document.getElementById('trashModal');
         if (modal && !modal.classList.contains('hidden')) {
-            this.loadTrash();
+            this.render();
         }
     },
 
@@ -381,11 +383,18 @@ const TrashComponent = {
      * Обработать realtime событие DELETE из корзины
      */
     handleRealtimeDelete(payload) {
-        console.log('Trash delete:', payload);
-        // Если корзина открыта, обновить список
+        console.log('♻️ Trash realtime DELETE:', payload);
+
+        // Удалить элемент из массива
+        const index = this.trashItems.findIndex(item => item.id === payload.id);
+        if (index !== -1) {
+            this.trashItems.splice(index, 1);
+        }
+
+        // Если корзина открыта, обновить отображение
         const modal = document.getElementById('trashModal');
         if (modal && !modal.classList.contains('hidden')) {
-            this.loadTrash();
+            this.render();
         }
     },
 
@@ -532,11 +541,8 @@ const TrashComponent = {
                 `Ошибок: ${failedCount}\n\n` +
                 `Некоторые карточки не удалось удалить.`
             );
-        } else {
-            NotificationsComponent.show(
-                `Успешно удалено навсегда ${successCount} карточек`,
-                'info'
-            );
+        } else if (successCount > 0) {
+            console.log(`✅ Успешно удалено навсегда ${successCount} карточек`);
         }
 
         // Закрыть модальное окно и обновить корзину
