@@ -67,7 +67,7 @@ const TrashComponent = {
     async open() {
         const modal = document.getElementById('trashModal');
         if (modal) {
-            modal.style.display = 'flex';
+            modal.classList.remove('hidden');
             await this.loadTrash();
         }
     },
@@ -78,7 +78,7 @@ const TrashComponent = {
     close() {
         const modal = document.getElementById('trashModal');
         if (modal) {
-            modal.style.display = 'none';
+            modal.classList.add('hidden');
         }
     },
 
@@ -324,7 +324,7 @@ const TrashComponent = {
         console.log('Trash insert:', payload);
         // Если корзина открыта, обновить список
         const modal = document.getElementById('trashModal');
-        if (modal && modal.style.display === 'flex') {
+        if (modal && !modal.classList.contains('hidden')) {
             this.loadTrash();
         }
     },
@@ -336,7 +336,7 @@ const TrashComponent = {
         console.log('Trash delete:', payload);
         // Если корзина открыта, обновить список
         const modal = document.getElementById('trashModal');
-        if (modal && modal.style.display === 'flex') {
+        if (modal && !modal.classList.contains('hidden')) {
             this.loadTrash();
         }
     }
