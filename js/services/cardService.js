@@ -198,12 +198,33 @@ const CardService = {
                 return { data: null, error: new Error('Необходима авторизация') };
             }
 
+            // Подготовить данные для обновления
+            const updateData = {
+                column_id: newColumnId,
+                position: newPosition
+            };
+
+            // Если перемещаем в Done - установить completed_at
+            if (newColumnId === CONFIG.COLUMNS.DONE) {
+                updateData.completed_at = new Date().toISOString();
+            }
+            // Если перемещаем ИЗ Done - очистить completed_at
+            else {
+                // Проверим текущую колонку карточки
+                const { data: currentCard } = await client
+                    .from(CONFIG.TABLES.CARDS)
+                    .select('column_id')
+                    .eq('id', cardId)
+                    .single();
+
+                if (currentCard && currentCard.column_id === CONFIG.COLUMNS.DONE) {
+                    updateData.completed_at = null;
+                }
+            }
+
             const { data, error } = await client
                 .from(CONFIG.TABLES.CARDS)
-                .update({
-                    column_id: newColumnId,
-                    position: newPosition
-                })
+                .update(updateData)
                 .eq('id', cardId)
                 .eq('user_id', currentUser.id)
                 .select()

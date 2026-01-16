@@ -54,20 +54,27 @@ const DateUtils = {
      * Проверка, просрочена ли задача
      * @param {string|Date} endDate - Дата окончания
      * @param {string|null} columnId - ID колонки (для проверки Done)
+     * @param {string|Date|null} completedAt - Дата завершения (для карточек в Done)
      * @returns {boolean} true если задача просрочена
      */
-    isOverdue(endDate, columnId = null) {
+    isOverdue(endDate, columnId = null, completedAt = null) {
         if (!endDate) return false;
 
-        // Карточки в Done не просрочены
-        if (columnId === CONFIG.COLUMNS.DONE) {
-            return false;
+        const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
+
+        // Для карточек в Done проверяем, была ли просрочка при завершении
+        if (columnId === CONFIG.COLUMNS.DONE && completedAt) {
+            const completed = typeof completedAt === 'string' ? new Date(completedAt) : completedAt;
+
+            // Сбрасываем время для корректного сравнения дат
+            end.setHours(23, 59, 59, 999); // Конец дня дедлайна
+            completed.setHours(0, 0, 0, 0); // Начало дня завершения
+
+            return completed > end; // Просрочено если завершено после дедлайна
         }
 
-        const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
+        // Для других колонок сравниваем с текущей датой
         const now = new Date();
-
-        // Сбрасываем время для корректного сравнения дат
         end.setHours(0, 0, 0, 0);
         now.setHours(0, 0, 0, 0);
 
@@ -113,13 +120,17 @@ const DateUtils = {
      * Получить текстовое описание статуса дедлайна
      * @param {string|Date} endDate - Дата окончания
      * @param {string|null} columnId - ID колонки (для проверки Done)
+     * @param {string|Date|null} completedAt - Дата завершения (для карточек в Done)
      * @returns {string} Описание статуса ("Просрочено", "Сегодня", "Завтра", "3 дня")
      */
-    getDeadlineStatus(endDate, columnId = null) {
+    getDeadlineStatus(endDate, columnId = null, completedAt = null) {
         if (!endDate) return '';
 
-        // Карточки в Done всегда "Выполнено"
+        // Для карточек в Done проверяем, была ли просрочка
         if (columnId === CONFIG.COLUMNS.DONE) {
+            if (this.isOverdue(endDate, columnId, completedAt)) {
+                return 'Просрочено';
+            }
             return 'Выполнено';
         }
 
@@ -138,18 +149,20 @@ const DateUtils = {
      * Получить CSS класс для статуса дедлайна
      * @param {string|Date} endDate - Дата окончания
      * @param {string|null} columnId - ID колонки (для проверки Done)
+     * @param {string|Date|null} completedAt - Дата завершения (для карточек в Done)
      * @returns {string} CSS класс ('overdue', 'approaching', 'completed', '')
      */
-    getDeadlineClass(endDate, columnId = null) {
+    getDeadlineClass(endDate, columnId = null, completedAt = null) {
         if (!endDate) return '';
 
-        // Карточки в Done получают класс 'completed'
-        if (columnId === CONFIG.COLUMNS.DONE) {
-            return 'completed';
+        // Проверка просрочки (работает и для Done с учетом completed_at)
+        if (this.isOverdue(endDate, columnId, completedAt)) {
+            return 'overdue';
         }
 
-        if (this.isOverdue(endDate, columnId)) {
-            return 'overdue';
+        // Карточки в Done, выполненные в срок
+        if (columnId === CONFIG.COLUMNS.DONE) {
+            return 'completed';
         }
 
         if (this.isApproachingDeadline(endDate)) {
@@ -186,18 +199,20 @@ const DateUtils = {
      * Получить иконку для даты в зависимости от статуса
      * @param {string|Date} endDate - Дата окончания
      * @param {string|null} columnId - ID колонки (для проверки Done)
+     * @param {string|Date|null} completedAt - Дата завершения (для карточек в Done)
      * @returns {string} HTML код иконки
      */
-    getDateIcon(endDate, columnId = null) {
+    getDateIcon(endDate, columnId = null, completedAt = null) {
         if (!endDate) return '📅';
 
-        // Карточки в Done получают зеленую метку
-        if (columnId === CONFIG.COLUMNS.DONE) {
-            return '🟢';
+        // Проверка просрочки (работает и для Done с учетом completed_at)
+        if (this.isOverdue(endDate, columnId, completedAt)) {
+            return '🔴';
         }
 
-        if (this.isOverdue(endDate, columnId)) {
-            return '🔴';
+        // Карточки в Done, выполненные в срок
+        if (columnId === CONFIG.COLUMNS.DONE) {
+            return '🟢';
         }
 
         if (this.isApproachingDeadline(endDate)) {

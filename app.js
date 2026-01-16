@@ -248,7 +248,7 @@ function createCardElement(card) {
     }
 
     // Добавить класс для статуса дедлайна
-    const deadlineClass = DateUtils.getDeadlineClass(card.end_date, card.column_id);
+    const deadlineClass = DateUtils.getDeadlineClass(card.end_date, card.column_id, card.completed_at);
     if (deadlineClass) {
         cardDiv.classList.add(deadlineClass);
     }
@@ -295,13 +295,13 @@ function createCardElement(card) {
     if (card.end_date) {
         const deadlineDiv = document.createElement('div');
         deadlineDiv.className = 'card-deadline';
-        const deadlineClass = DateUtils.getDeadlineClass(card.end_date, card.column_id);
+        const deadlineClass = DateUtils.getDeadlineClass(card.end_date, card.column_id, card.completed_at);
         if (deadlineClass) {
             deadlineDiv.classList.add(deadlineClass);
         }
-        const icon = DateUtils.getDateIcon(card.end_date, card.column_id);
+        const icon = DateUtils.getDateIcon(card.end_date, card.column_id, card.completed_at);
         const formattedDate = DateUtils.formatDate(card.end_date);
-        const status = DateUtils.getDeadlineStatus(card.end_date, card.column_id);
+        const status = DateUtils.getDeadlineStatus(card.end_date, card.column_id, card.completed_at);
 
         // Показываем точную дату и статус для срочных задач
         if (deadlineClass) {
