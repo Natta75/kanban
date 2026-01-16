@@ -230,6 +230,91 @@
     }
 }
 
+/* ============================================================
+   BULK DELETE - Массовое удаление
+   ============================================================ */
+
+.column-actions {
+    padding: 0.5rem 1rem;
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.btn-bulk-delete {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-bulk-delete:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+.date-range-buttons,
+.date-range-buttons-trash {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.date-preset,
+.date-preset-trash {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.bulk-delete-preview {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.bulk-delete-preview p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #495057;
+}
+
+.bulk-delete-preview strong {
+    color: #dc3545;
+    font-size: 1.1rem;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .date-range-buttons,
+    .date-range-buttons-trash {
+        flex-direction: column;
+    }
+
+    .date-preset,
+    .date-preset-trash {
+        width: 100%;
+    }
+}
+
 @media (max-width: 480px) {
     .trash-item {
         padding: 0.75rem;

@@ -59,6 +59,54 @@ const TrashComponent = {
                 this.render();
             });
         }
+
+        // Кнопка массового удаления из корзины
+        const bulkDeleteBtn = document.getElementById('bulk-delete-trash-btn');
+        if (bulkDeleteBtn) {
+            bulkDeleteBtn.addEventListener('click', () => this.openBulkDeleteModal());
+        }
+
+        // Модальное окно массового удаления из корзины
+        const closeBulkDeleteTrash = document.getElementById('closeBulkDeleteTrash');
+        if (closeBulkDeleteTrash) {
+            closeBulkDeleteTrash.addEventListener('click', () => this.closeBulkDeleteModal());
+        }
+
+        const bulkDeleteTrashCancelBtn = document.getElementById('bulk-delete-trash-cancel-btn');
+        if (bulkDeleteTrashCancelBtn) {
+            bulkDeleteTrashCancelBtn.addEventListener('click', () => this.closeBulkDeleteModal());
+        }
+
+        const bulkDeleteTrashModal = document.getElementById('bulkDeleteTrashModal');
+        if (bulkDeleteTrashModal) {
+            bulkDeleteTrashModal.addEventListener('click', (e) => {
+                if (e.target === bulkDeleteTrashModal) {
+                    this.closeBulkDeleteModal();
+                }
+            });
+        }
+
+        // Форма массового удаления из корзины
+        const bulkDeleteTrashForm = document.getElementById('bulk-delete-trash-form');
+        if (bulkDeleteTrashForm) {
+            bulkDeleteTrashForm.addEventListener('submit', (e) => this.handleBulkDeleteSubmit(e));
+        }
+
+        // Preset кнопки для корзины
+        document.querySelectorAll('.date-preset-trash').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const days = parseInt(e.target.dataset.days);
+                this.setDatePreset(days);
+            });
+        });
+
+        // Изменение дат в корзине - обновить предпросмотр
+        const startDateInput = document.getElementById('bulk-delete-trash-start-date');
+        const endDateInput = document.getElementById('bulk-delete-trash-end-date');
+        if (startDateInput && endDateInput) {
+            startDateInput.addEventListener('change', () => this.updateBulkDeletePreview());
+            endDateInput.addEventListener('change', () => this.updateBulkDeletePreview());
+        }
     },
 
     /**
@@ -339,5 +387,160 @@ const TrashComponent = {
         if (modal && !modal.classList.contains('hidden')) {
             this.loadTrash();
         }
+    },
+
+    /**
+     * Открыть модальное окно массового удаления из корзины
+     */
+    openBulkDeleteModal() {
+        const modal = document.getElementById('bulkDeleteTrashModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            // Сбросить форму
+            document.getElementById('bulk-delete-trash-start-date').value = '';
+            document.getElementById('bulk-delete-trash-end-date').value = '';
+            document.getElementById('bulk-delete-trash-preview').classList.add('hidden');
+        }
+    },
+
+    /**
+     * Закрыть модальное окно массового удаления
+     */
+    closeBulkDeleteModal() {
+        const modal = document.getElementById('bulkDeleteTrashModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    },
+
+    /**
+     * Установить preset диапазона дат для корзины
+     */
+    setDatePreset(days) {
+        const now = new Date();
+        const endDate = now.toISOString().split('T')[0];
+        const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+            .toISOString().split('T')[0];
+
+        document.getElementById('bulk-delete-trash-start-date').value = startDate;
+        document.getElementById('bulk-delete-trash-end-date').value = endDate;
+        this.updateBulkDeletePreview();
+    },
+
+    /**
+     * Обновить предпросмотр массового удаления
+     */
+    updateBulkDeletePreview() {
+        const startDate = document.getElementById('bulk-delete-trash-start-date').value;
+        const endDate = document.getElementById('bulk-delete-trash-end-date').value;
+
+        if (!startDate || !endDate) {
+            document.getElementById('bulk-delete-trash-preview').classList.add('hidden');
+            return;
+        }
+
+        const count = this.countTrashInDateRange(startDate, endDate);
+        document.getElementById('bulk-delete-trash-count').textContent = count;
+        document.getElementById('bulk-delete-trash-preview').classList.remove('hidden');
+    },
+
+    /**
+     * Подсчитать количество карточек в корзине в диапазоне дат
+     */
+    countTrashInDateRange(startDate, endDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        return this.trashItems.filter(item => {
+            if (!item.deleted_at) return false;
+
+            // Проверяем права (владелец или удаливший)
+            if (!state.user) return false;
+            if (item.user_id !== state.user.id && item.deleted_by !== state.user.id) {
+                return false;
+            }
+
+            const deletedDate = new Date(item.deleted_at);
+            return deletedDate >= start && deletedDate <= end;
+        }).length;
+    },
+
+    /**
+     * Обработка отправки формы массового удаления
+     */
+    async handleBulkDeleteSubmit(e) {
+        e.preventDefault();
+
+        const startDate = document.getElementById('bulk-delete-trash-start-date').value;
+        const endDate = document.getElementById('bulk-delete-trash-end-date').value;
+
+        if (!startDate || !endDate) {
+            alert('Пожалуйста, выберите диапазон дат');
+            return;
+        }
+
+        const count = this.countTrashInDateRange(startDate, endDate);
+        if (count === 0) {
+            alert('Нет карточек для удаления в выбранном диапазоне');
+            return;
+        }
+
+        const confirmed = confirm(
+            `ВНИМАНИЕ! Удалить навсегда ${count} карточек из корзины?\n` +
+            `Период: с ${startDate} по ${endDate}\n\n` +
+            `Это действие нельзя отменить!`
+        );
+
+        if (!confirmed) return;
+
+        // Получить карточки для удаления
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        const itemsToDelete = this.trashItems.filter(item => {
+            if (!item.deleted_at) return false;
+            if (!state.user) return false;
+            if (item.user_id !== state.user.id && item.deleted_by !== state.user.id) {
+                return false;
+            }
+
+            const deletedDate = new Date(item.deleted_at);
+            return deletedDate >= start && deletedDate <= end;
+        });
+
+        // Удалить карточки
+        let successCount = 0;
+        let failedCount = 0;
+
+        for (const item of itemsToDelete) {
+            const { error } = await TrashService.permanentDelete(item.id);
+            if (error) {
+                failedCount++;
+                console.error('Error deleting:', error);
+            } else {
+                successCount++;
+            }
+        }
+
+        if (failedCount > 0) {
+            alert(
+                `Удалено навсегда: ${successCount}\n` +
+                `Ошибок: ${failedCount}\n\n` +
+                `Некоторые карточки не удалось удалить.`
+            );
+        } else {
+            NotificationsComponent.show(
+                `Успешно удалено навсегда ${successCount} карточек`,
+                'info'
+            );
+        }
+
+        // Закрыть модальное окно и обновить корзину
+        this.closeBulkDeleteModal();
+        await this.loadTrash();
     }
 };

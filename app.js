@@ -826,6 +826,11 @@ async function initializeApp() {
         TrashComponent.init();
     }
 
+    // 3.6. Массовое удаление
+    if (typeof BulkDeleteComponent !== 'undefined') {
+        BulkDeleteComponent.init();
+    }
+
     // 4. Уведомления
     await NotificationsComponent.init();
 

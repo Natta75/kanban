@@ -103,6 +103,11 @@
                 <h2>Done</h2>
                 <span class="card-count">0</span>
             </div>
+            <div class="column-actions">
+                <button class="btn btn-bulk-delete" id="bulk-delete-done-btn" title="Массовое удаление">
+                    🗑️ Удалить по дате
+                </button>
+            </div>
             <div class="cards-container" id="done-cards"></div>
             <button class="add-card-btn" data-column-id="done">
                 <span>+</span> Добавить карточку
@@ -254,6 +259,46 @@
         </div>
     </div>
 
+    <!-- Модальное окно массового удаления из Done -->
+    <div id="bulkDeleteModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🗑️ Массовое удаление из Done</h2>
+                <button class="close-btn" id="closeBulkDelete" aria-label="Закрыть">&times;</button>
+            </div>
+            <form id="bulk-delete-form">
+                <div class="form-group">
+                    <label>Выберите диапазон дат завершения карточек:</label>
+                    <div class="date-range-buttons">
+                        <button type="button" class="btn btn-secondary date-preset" data-days="3">Последние 3 дня</button>
+                        <button type="button" class="btn btn-secondary date-preset" data-days="7">Последняя неделя</button>
+                        <button type="button" class="btn btn-secondary date-preset" data-days="30">Последний месяц</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Или выберите произвольный диапазон:</label>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bulk-delete-start-date">С даты</label>
+                            <input type="date" id="bulk-delete-start-date" name="startDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="bulk-delete-end-date">По дату</label>
+                            <input type="date" id="bulk-delete-end-date" name="endDate">
+                        </div>
+                    </div>
+                </div>
+                <div id="bulk-delete-preview" class="bulk-delete-preview hidden">
+                    <p>Будет удалено карточек: <strong id="bulk-delete-count">0</strong></p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" id="bulk-delete-cancel-btn">Отмена</button>
+                    <button type="submit" class="btn btn-danger" id="bulk-delete-submit-btn">Удалить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Модальное окно корзины -->
     <div id="trashModal" class="modal-overlay hidden">
         <div class="modal trash-modal">
@@ -276,10 +321,55 @@
                         <option value="title">По названию</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <button class="btn btn-danger" id="bulk-delete-trash-btn" title="Массовое удаление из корзины">
+                        🗑️ Удалить по дате
+                    </button>
+                </div>
             </div>
             <div id="trashList" class="trash-list">
                 <!-- Карточки корзины будут добавлены здесь -->
             </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно массового удаления из корзины -->
+    <div id="bulkDeleteTrashModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🗑️ Массовое удаление из корзины</h2>
+                <button class="close-btn" id="closeBulkDeleteTrash" aria-label="Закрыть">&times;</button>
+            </div>
+            <form id="bulk-delete-trash-form">
+                <div class="form-group">
+                    <label>Выберите диапазон дат удаления карточек:</label>
+                    <div class="date-range-buttons">
+                        <button type="button" class="btn btn-secondary date-preset-trash" data-days="3">Последние 3 дня</button>
+                        <button type="button" class="btn btn-secondary date-preset-trash" data-days="7">Последняя неделя</button>
+                        <button type="button" class="btn btn-secondary date-preset-trash" data-days="30">Последний месяц</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Или выберите произвольный диапазон:</label>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bulk-delete-trash-start-date">С даты</label>
+                            <input type="date" id="bulk-delete-trash-start-date" name="startDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="bulk-delete-trash-end-date">По дату</label>
+                            <input type="date" id="bulk-delete-trash-end-date" name="endDate">
+                        </div>
+                    </div>
+                </div>
+                <div id="bulk-delete-trash-preview" class="bulk-delete-preview hidden">
+                    <p>Будет удалено навсегда карточек: <strong id="bulk-delete-trash-count">0</strong></p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" id="bulk-delete-trash-cancel-btn">Отмена</button>
+                    <button type="submit" class="btn btn-danger" id="bulk-delete-trash-submit-btn">Удалить навсегда</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -302,6 +392,7 @@
     <script src="js/components/auth.js?v=4"></script>
     <script src="js/components/settings.js?v=4"></script>
     <script src="js/components/trash.js"></script>
+    <script src="js/components/bulkDelete.js"></script>
     <script src="js/components/search.js"></script>
     <script src="js/components/filters.js"></script>
     <script src="js/components/notifications.js?v=2"></script>
