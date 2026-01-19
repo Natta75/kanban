@@ -175,6 +175,12 @@ const BulkDeleteComponent = {
 
         if (!confirmed) return;
 
+        // Закрыть модальное окно СРАЗУ
+        this.closeDoneModal();
+
+        // Показать уведомление о процессе удаления
+        this.showDeleteProgress(count);
+
         // Получить карточки для удаления
         const start = new Date(startDate);
         start.setHours(0, 0, 0, 0);
@@ -190,9 +196,26 @@ const BulkDeleteComponent = {
             return completedDate >= start && completedDate <= end;
         });
 
-        // Удалить карточки
+        // Удалить карточки из state СРАЗУ для быстрого UI обновления
         const cardIds = cardsToDelete.map(card => card.id);
+        cardIds.forEach(cardId => {
+            const index = state.cards.findIndex(c => c.id === cardId);
+            if (index !== -1) {
+                state.cards.splice(index, 1);
+            }
+        });
+
+        // Обновить UI колонки Done
+        if (typeof renderColumn === 'function') {
+            renderColumn('done');
+            updateCardCount('done');
+        }
+
+        // Выполнить удаление в БД асинхронно
         const results = await TrashService.bulkMoveToTrash(cardIds);
+
+        // Скрыть индикатор прогресса
+        this.hideDeleteProgress();
 
         if (results.failed > 0) {
             alert(
@@ -200,10 +223,39 @@ const BulkDeleteComponent = {
                 `Ошибок: ${results.failed}\n\n` +
                 `Некоторые карточки не удалось удалить.`
             );
+            // Если были ошибки, перезагрузить карточки из БД
+            if (typeof loadCards === 'function') {
+                await loadCards();
+            }
         } else if (results.success > 0) {
             console.log(`✅ Успешно удалено ${results.success} карточек`);
         }
 
-        this.closeDoneModal();
+        // Обновить уведомления
+        if (typeof NotificationsComponent !== 'undefined') {
+            NotificationsComponent.checkDeadlines(state.cards);
+        }
+    },
+
+    /**
+     * Показать индикатор прогресса удаления
+     */
+    showDeleteProgress(count) {
+        const banner = document.getElementById('notification-banner');
+        if (banner) {
+            banner.textContent = `⏳ Удаление ${count} карточек...`;
+            banner.className = 'notification-banner info';
+            banner.classList.remove('hidden');
+        }
+    },
+
+    /**
+     * Скрыть индикатор прогресса
+     */
+    hideDeleteProgress() {
+        const banner = document.getElementById('notification-banner');
+        if (banner) {
+            banner.classList.add('hidden');
+        }
     }
 };

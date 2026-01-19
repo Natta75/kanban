@@ -610,6 +610,10 @@ async function checkAndMigrateLocalStorage() {
     }
 }
 
+// Debouncing для массового удаления
+let deleteDebounceTimer = null;
+let columnsToUpdate = new Set();
+
 function setupRealtimeSubscription() {
     if (!state.user) {
         console.log('Пользователь не авторизован, Realtime не подключается');
@@ -666,14 +670,33 @@ function setupRealtimeSubscription() {
             }
         },
         onDelete: (deletedCard) => {
-            // Удалить карточку
+            // Удалить карточку из state
             const index = state.cards.findIndex(c => c.id === deletedCard.id);
             if (index !== -1) {
                 state.cards.splice(index, 1);
-                renderColumn(deletedCard.column_id);
-                updateCardCount(deletedCard.column_id);
-                // Обновить уведомления
-                NotificationsComponent.checkDeadlines(state.cards);
+
+                // Добавить колонку в список для обновления
+                columnsToUpdate.add(deletedCard.column_id);
+
+                // Отложить обновление UI (debouncing)
+                if (deleteDebounceTimer) {
+                    clearTimeout(deleteDebounceTimer);
+                }
+
+                deleteDebounceTimer = setTimeout(() => {
+                    // Обновить все затронутые колонки
+                    columnsToUpdate.forEach(columnId => {
+                        renderColumn(columnId);
+                        updateCardCount(columnId);
+                    });
+
+                    // Обновить уведомления
+                    NotificationsComponent.checkDeadlines(state.cards);
+
+                    // Очистить список колонок
+                    columnsToUpdate.clear();
+                    deleteDebounceTimer = null;
+                }, 100); // Ждем 100мс перед обновлением UI
             }
         }
     });
