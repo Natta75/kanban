@@ -1,0 +1,182 @@
+/* ============================================================
+   CHECKLIST STYLES - Стили для чеклиста
+   ============================================================ */
+
+/* Обёртка чеклиста */
+.checklist-wrapper {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+/* Заголовок чеклиста */
+.checklist-header h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Контейнер списка пунктов */
+.checklist-items {
+    margin-bottom: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Пустой чеклист */
+.checklist-empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: #999;
+    font-style: italic;
+}
+
+/* Пункт чеклиста */
+.checklist-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background-color: white;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s ease;
+}
+
+.checklist-item:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-color: #ccc;
+}
+
+/* Выполненный пункт */
+.checklist-item.completed {
+    background-color: #f0f8f0;
+    border-color: #28a745;
+    opacity: 0.8;
+}
+
+/* Чекбокс */
+.checklist-checkbox {
+    width: 20px;
+    height: 20px;
+    margin-right: 0.75rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* Текст пункта */
+.checklist-item-text {
+    flex: 1;
+    font-size: 0.95rem;
+    color: #333;
+    word-break: break-word;
+    transition: all 0.2s ease;
+}
+
+/* Зачёркнутый текст для выполненных */
+.checklist-item.completed .checklist-item-text {
+    text-decoration: line-through;
+    color: #666;
+}
+
+/* Кнопка удаления пункта */
+.checklist-delete-btn {
+    width: 24px;
+    height: 24px;
+    margin-left: 0.5rem;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    color: #999;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+}
+
+.checklist-delete-btn:hover {
+    color: #dc3545;
+}
+
+/* Форма добавления нового пункта */
+.checklist-add-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.checklist-input {
+    flex: 1;
+    padding: 0.6rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.checklist-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.checklist-add-btn {
+    padding: 0.6rem 1.2rem;
+    white-space: nowrap;
+}
+
+/* Прогресс чеклиста на карточке */
+.card-checklist-progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.5rem;
+    background-color: #e8f4fd;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #0066cc;
+    margin-right: 0.5rem;
+}
+
+.card-checklist-progress.completed {
+    background-color: #d4edda;
+    color: #28a745;
+}
+
+/* Анимация появления пункта */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.checklist-item {
+    animation: slideIn 0.2s ease;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .checklist-wrapper {
+        padding: 0.75rem;
+    }
+
+    .checklist-add-form {
+        flex-direction: column;
+    }
+
+    .checklist-add-btn {
+        width: 100%;
+    }
+
+    .checklist-items {
+        max-height: 200px;
+    }
+}

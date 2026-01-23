@@ -364,6 +364,122 @@ ALTER PUBLICATION supabase_realtime ADD TABLE kanban_trash;
 
 
 -- ============================================================
+-- 18. ЭТАП 4: ДИНАМИЧНЫЙ ЧЕКЛИСТ В КАРТОЧКАХ
+-- ============================================================
+
+-- Таблица чеклистов
+CREATE TABLE kanban_checklist_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    card_id UUID NOT NULL REFERENCES kanban_cards(id) ON DELETE CASCADE,
+    text VARCHAR(200) NOT NULL,
+    is_completed BOOLEAN DEFAULT false,
+    position INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+COMMENT ON TABLE kanban_checklist_items IS 'Чеклисты для карточек с автоматической сортировкой';
+COMMENT ON COLUMN kanban_checklist_items.position IS 'Позиция пункта в чеклисте';
+COMMENT ON COLUMN kanban_checklist_items.is_completed IS 'Статус выполнения пункта';
+
+
+-- ============================================================
+-- 19. RLS ПОЛИТИКИ для kanban_checklist_items
+-- ============================================================
+
+-- Включить RLS
+ALTER TABLE kanban_checklist_items ENABLE ROW LEVEL SECURITY;
+
+-- Видны всем (как и карточки)
+CREATE POLICY "Чеклисты видны всем" ON kanban_checklist_items
+    FOR SELECT USING (true);
+
+-- CRUD только для владельца карточки
+CREATE POLICY "Управление чеклистами" ON kanban_checklist_items
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM kanban_cards
+            WHERE kanban_cards.id = card_id
+            AND kanban_cards.user_id = auth.uid()
+        )
+    );
+
+
+-- ============================================================
+-- 20. ИНДЕКСЫ для kanban_checklist_items
+-- ============================================================
+
+-- Индекс для быстрого поиска по карточке
+CREATE INDEX idx_checklist_card_id ON kanban_checklist_items(card_id);
+
+-- Индекс для сортировки пунктов
+CREATE INDEX idx_checklist_position ON kanban_checklist_items(card_id, position);
+
+-- Индекс для фильтрации по статусу
+CREATE INDEX idx_checklist_completed ON kanban_checklist_items(card_id, is_completed);
+
+
+-- ============================================================
+-- 21. ТРИГГЕРЫ для kanban_checklist_items
+-- ============================================================
+
+-- Триггер автообновления updated_at
+CREATE TRIGGER update_checklist_items_updated_at
+    BEFORE UPDATE ON kanban_checklist_items
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Триггер автопересортировки выполненных пунктов
+CREATE OR REPLACE FUNCTION reorder_completed_items()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.is_completed = true AND OLD.is_completed = false THEN
+        -- Переместить выполненный пункт в конец
+        UPDATE kanban_checklist_items
+        SET position = position - 1
+        WHERE card_id = NEW.card_id
+        AND position > OLD.position;
+
+        NEW.position = (
+            SELECT COALESCE(MAX(position), 0) + 1
+            FROM kanban_checklist_items
+            WHERE card_id = NEW.card_id
+        );
+    ELSIF NEW.is_completed = false AND OLD.is_completed = true THEN
+        -- Переместить невыполненный пункт в начало невыполненных
+        NEW.position = (
+            SELECT COALESCE(MIN(position), 0)
+            FROM kanban_checklist_items
+            WHERE card_id = NEW.card_id AND is_completed = false
+        );
+
+        UPDATE kanban_checklist_items
+        SET position = position + 1
+        WHERE card_id = NEW.card_id
+        AND position >= NEW.position
+        AND id != NEW.id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER reorder_checklist_on_complete
+    BEFORE UPDATE ON kanban_checklist_items
+    FOR EACH ROW
+    WHEN (OLD.is_completed IS DISTINCT FROM NEW.is_completed)
+    EXECUTE FUNCTION reorder_completed_items();
+
+
+-- ============================================================
+-- 22. REALTIME для kanban_checklist_items
+-- ============================================================
+
+-- Включить Realtime для таблицы чеклистов
+ALTER PUBLICATION supabase_realtime ADD TABLE kanban_checklist_items;
+
+
+-- ============================================================
 -- ГОТОВО! ✅
 -- ============================================================
 -- Таблицы созданы с префиксом kanban_ для изоляции
@@ -372,4 +488,5 @@ ALTER PUBLICATION supabase_realtime ADD TABLE kanban_trash;
 -- Индексы обеспечивают быструю работу
 -- ЭТАП 1: Добавлена таблица профилей пользователей с никнеймами ✅
 -- ЭТАП 2: Добавлена корзина для удалённых карточек со сроком хранения 40 дней ✅
+-- ЭТАП 4: Добавлена таблица чеклистов с автоматической сортировкой ✅
 -- ============================================================

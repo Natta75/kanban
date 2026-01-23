@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="css/dragdrop.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/trash.css">
+    <link rel="stylesheet" href="css/checklist.css">
 </head>
 <body>
     <header>
@@ -256,6 +257,8 @@
                     <button type="submit" class="btn btn-primary">Сохранить</button>
                 </div>
             </form>
+            <!-- Чеклист (только в режиме редактирования) -->
+            <div id="card-checklist-container" class="hidden"></div>
         </div>
     </div>
 
@@ -386,6 +389,7 @@
     <script src="js/services/profileService.js"></script>
     <script src="js/services/cardService.js"></script>
     <script src="js/services/trashService.js"></script>
+    <script src="js/services/checklistService.js"></script>
     <script src="js/services/realtimeService.js"></script>
     <script src="js/utils/dateUtils.js?v=2"></script>
     <script src="js/utils/urlUtils.js?v=2"></script>
@@ -395,6 +399,7 @@
     <script src="js/components/bulkDelete.js"></script>
     <script src="js/components/search.js"></script>
     <script src="js/components/filters.js"></script>
+    <script src="js/components/checklist.js"></script>
     <script src="js/components/notifications.js?v=2"></script>
     <script src="js/dragDrop/sortable.js?v=2"></script>
     <script src="app.js?v=3"></script>

@@ -8,6 +8,7 @@
 const RealtimeService = {
     subscription: null,
     trashSubscription: null,
+    checklistSubscription: null,
     callbacks: {
         onInsert: null,
         onUpdate: null,
@@ -15,6 +16,11 @@ const RealtimeService = {
     },
     trashCallbacks: {
         onInsert: null,
+        onDelete: null
+    },
+    checklistCallbacks: {
+        onInsert: null,
+        onUpdate: null,
         onDelete: null
     },
 
@@ -305,6 +311,106 @@ const RealtimeService = {
                 onDelete: null
             };
             console.log('📡 Realtime подписка на корзину отменена');
+        }
+    },
+
+    /**
+     * Подписаться на изменения таблицы kanban_checklist_items
+     * @param {Object} handlers - Обработчики событий {onInsert, onUpdate, onDelete}
+     * @returns {Object} Subscription объект
+     */
+    subscribeToChecklist(handlers = {}) {
+        const client = getSupabaseClient();
+        if (!client) {
+            console.warn('Supabase не настроен, Realtime для чеклистов недоступен');
+            return null;
+        }
+
+        // Сохранить обработчики
+        this.checklistCallbacks = {
+            onInsert: handlers.onInsert || null,
+            onUpdate: handlers.onUpdate || null,
+            onDelete: handlers.onDelete || null
+        };
+
+        // Отписаться от предыдущей подписки, если есть
+        if (this.checklistSubscription) {
+            this.unsubscribeFromChecklist();
+        }
+
+        // Создать новую подписку
+        this.checklistSubscription = client
+            .channel('kanban_checklist_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'kanban_checklist_items'
+                },
+                (payload) => {
+                    console.log('✓ Checklist INSERT:', payload.new);
+                    if (this.checklistCallbacks.onInsert) {
+                        this.checklistCallbacks.onInsert(payload.new);
+                    }
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'kanban_checklist_items'
+                },
+                (payload) => {
+                    console.log('✓ Checklist UPDATE:', payload.new);
+                    if (this.checklistCallbacks.onUpdate) {
+                        this.checklistCallbacks.onUpdate(payload.new, payload.old);
+                    }
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'DELETE',
+                    schema: 'public',
+                    table: 'kanban_checklist_items'
+                },
+                (payload) => {
+                    console.log('✓ Checklist DELETE:', payload.old);
+                    if (this.checklistCallbacks.onDelete) {
+                        this.checklistCallbacks.onDelete(payload.old);
+                    }
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ Realtime подписка на чеклисты активна');
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error('❌ Ошибка Realtime подписки на чеклисты:', status);
+                }
+            });
+
+        console.log('📡 Realtime подписка на чеклисты создана');
+        return this.checklistSubscription;
+    },
+
+    /**
+     * Отписаться от изменений чеклистов
+     */
+    unsubscribeFromChecklist() {
+        if (this.checklistSubscription) {
+            const client = getSupabaseClient();
+            if (client) {
+                client.removeChannel(this.checklistSubscription);
+            }
+            this.checklistSubscription = null;
+            this.checklistCallbacks = {
+                onInsert: null,
+                onUpdate: null,
+                onDelete: null
+            };
+            console.log('📡 Realtime подписка на чеклисты отменена');
         }
     }
 };

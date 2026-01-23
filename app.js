@@ -109,6 +109,19 @@ async function addCard(columnId, title, description, priority, startDate, endDat
 
     // Добавить карточку в локальное состояние сразу после успешного создания
     if (data) {
+        // Сохранить временные пункты чеклиста, если они есть
+        if (typeof ChecklistComponent !== 'undefined') {
+            const tempItems = ChecklistComponent.getTempItems();
+            if (tempItems && tempItems.length > 0) {
+                console.log(`Сохранение ${tempItems.length} пунктов чеклиста для карточки ${data.id}`);
+                const { error: checklistError } = await ChecklistService.addBulkChecklistItems(data.id, tempItems);
+                if (checklistError) {
+                    console.error('Не удалось сохранить пункты чеклиста:', checklistError);
+                    // Не блокируем создание карточки из-за ошибки чеклиста
+                }
+            }
+        }
+
         // Проверить, соответствует ли карточка текущим фильтрам
         const shouldShow =
             state.filters.selectedUser === 'all' ||
@@ -312,6 +325,17 @@ function createCardElement(card) {
         metaDiv.appendChild(deadlineDiv);
     }
 
+    // Placeholder для прогресса чеклиста (будет загружен асинхронно)
+    const checklistProgressDiv = document.createElement('div');
+    checklistProgressDiv.className = 'card-checklist-progress-container';
+    checklistProgressDiv.id = `checklist-progress-${card.id}`;
+    metaDiv.appendChild(checklistProgressDiv);
+
+    // Загрузить прогресс чеклиста асинхронно
+    if (typeof ChecklistService !== 'undefined') {
+        loadChecklistProgress(card.id);
+    }
+
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'card-actions';
 
@@ -409,6 +433,13 @@ function openAddModal(columnId) {
     startDateInput.value = DateUtils.getTodayForInput();
     endDateInput.value = '';
 
+    // Показать чеклист для новой карточки
+    const checklistContainer = document.getElementById('card-checklist-container');
+    if (checklistContainer && typeof ChecklistComponent !== 'undefined') {
+        checklistContainer.classList.remove('hidden');
+        ChecklistComponent.render(null, checklistContainer, true); // true = новая карточка
+    }
+
     modal.classList.remove('hidden');
     titleInput.focus();
 }
@@ -435,6 +466,13 @@ function openEditModal(cardId) {
     startDateInput.value = card.start_date ? DateUtils.formatDateForInput(card.start_date) : '';
     endDateInput.value = card.end_date ? DateUtils.formatDateForInput(card.end_date) : '';
 
+    // Показать чеклист в режиме редактирования
+    const checklistContainer = document.getElementById('card-checklist-container');
+    if (checklistContainer && typeof ChecklistComponent !== 'undefined') {
+        checklistContainer.classList.remove('hidden');
+        ChecklistComponent.render(cardId, checklistContainer);
+    }
+
     modal.classList.remove('hidden');
     titleInput.focus();
 }
@@ -449,6 +487,15 @@ function closeModal() {
 
     const form = document.getElementById('card-form');
     form.reset();
+
+    // Скрыть и очистить чеклист
+    const checklistContainer = document.getElementById('card-checklist-container');
+    if (checklistContainer) {
+        checklistContainer.classList.add('hidden');
+        if (typeof ChecklistComponent !== 'undefined') {
+            ChecklistComponent.clear();
+        }
+    }
 }
 
 function saveCard(event) {
@@ -718,6 +765,49 @@ function setupRealtimeSubscription() {
             }
         }
     });
+
+    // Подписка на события чеклистов
+    RealtimeService.subscribeToChecklist({
+        onInsert: (checklistItem) => {
+            console.log('Checklist insert:', checklistItem);
+            // Обновить прогресс чеклиста на карточке
+            if (typeof window.updateCardChecklistProgress === 'function') {
+                window.updateCardChecklistProgress(checklistItem.card_id);
+            }
+            // Обновить чеклист в модальном окне, если открыт
+            if (state.editMode && state.selectedCard === checklistItem.card_id) {
+                if (typeof ChecklistComponent !== 'undefined') {
+                    ChecklistComponent.loadItems();
+                }
+            }
+        },
+        onUpdate: (checklistItem) => {
+            console.log('Checklist update:', checklistItem);
+            // Обновить прогресс чеклиста на карточке
+            if (typeof window.updateCardChecklistProgress === 'function') {
+                window.updateCardChecklistProgress(checklistItem.card_id);
+            }
+            // Обновить чеклист в модальном окне, если открыт
+            if (state.editMode && state.selectedCard === checklistItem.card_id) {
+                if (typeof ChecklistComponent !== 'undefined') {
+                    ChecklistComponent.loadItems();
+                }
+            }
+        },
+        onDelete: (checklistItem) => {
+            console.log('Checklist delete:', checklistItem);
+            // Обновить прогресс чеклиста на карточке
+            if (typeof window.updateCardChecklistProgress === 'function') {
+                window.updateCardChecklistProgress(checklistItem.card_id);
+            }
+            // Обновить чеклист в модальном окне, если открыт
+            if (state.editMode && state.selectedCard === checklistItem.card_id) {
+                if (typeof ChecklistComponent !== 'undefined') {
+                    ChecklistComponent.loadItems();
+                }
+            }
+        }
+    });
 }
 
 // ============================================================
@@ -800,6 +890,56 @@ async function loadAndPopulateUsers() {
 
     console.log(`✅ Пользователи добавлены в фильтр`);
 }
+
+// ============================================================
+// CHECKLIST PROGRESS
+// ============================================================
+
+/**
+ * Загрузить прогресс чеклиста для карточки и отобразить его
+ */
+async function loadChecklistProgress(cardId) {
+    if (typeof ChecklistService === 'undefined') return;
+
+    const { completed, total, error } = await ChecklistService.getChecklistStats(cardId);
+
+    if (error) {
+        console.error('Failed to load checklist progress:', error);
+        return;
+    }
+
+    updateChecklistProgressUI(cardId, completed, total);
+}
+
+/**
+ * Обновить UI прогресса чеклиста на карточке
+ */
+function updateChecklistProgressUI(cardId, completed, total) {
+    const progressContainer = document.getElementById(`checklist-progress-${cardId}`);
+    if (!progressContainer) return;
+
+    // Очистить контейнер
+    progressContainer.innerHTML = '';
+
+    // Не показывать если нет пунктов
+    if (total === 0) return;
+
+    const progressDiv = document.createElement('div');
+    progressDiv.className = 'card-checklist-progress';
+    if (completed === total) {
+        progressDiv.classList.add('completed');
+    }
+    progressDiv.textContent = `✓ ${completed}/${total}`;
+
+    progressContainer.appendChild(progressDiv);
+}
+
+/**
+ * Глобальная функция для обновления прогресса чеклиста (вызывается из ChecklistComponent)
+ */
+window.updateCardChecklistProgress = async function(cardId) {
+    await loadChecklistProgress(cardId);
+};
 
 // ============================================================
 // APP INITIALIZATION
