@@ -326,15 +326,10 @@ function createCardElement(card) {
     }
 
     // Placeholder для прогресса чеклиста (будет загружен асинхронно)
+    // Вынесен в отдельный блок для консистентной позиции
     const checklistProgressDiv = document.createElement('div');
     checklistProgressDiv.className = 'card-checklist-progress-container';
     checklistProgressDiv.id = `checklist-progress-${card.id}`;
-    metaDiv.appendChild(checklistProgressDiv);
-
-    // Загрузить прогресс чеклиста асинхронно
-    if (typeof ChecklistService !== 'undefined') {
-        loadChecklistProgress(card.id);
-    }
 
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'card-actions';
@@ -376,7 +371,13 @@ function createCardElement(card) {
     cardDiv.appendChild(titleDiv);
     cardDiv.appendChild(descriptionDiv);
     cardDiv.appendChild(metaDiv);
+    cardDiv.appendChild(checklistProgressDiv); // Чеклист как отдельный блок
     cardDiv.appendChild(actionsDiv);
+
+    // Загрузить прогресс чеклиста асинхронно
+    if (typeof ChecklistService !== 'undefined') {
+        loadChecklistProgress(card.id);
+    }
 
     return cardDiv;
 }
@@ -900,21 +901,25 @@ async function loadAndPopulateUsers() {
  */
 async function loadChecklistProgress(cardId) {
     if (typeof ChecklistService === 'undefined') return;
-
-    const { completed, total, error } = await ChecklistService.getChecklistStats(cardId);
-
-    if (error) {
-        console.error('Failed to load checklist progress:', error);
+    if (!cardId || cardId === 'undefined') {
+        console.warn('⚠️ loadChecklistProgress called with invalid cardId:', cardId);
         return;
     }
 
-    updateChecklistProgressUI(cardId, completed, total);
+    const { data: items, error } = await ChecklistService.getChecklistItems(cardId);
+
+    if (error) {
+        console.error('Failed to load checklist items:', error);
+        return;
+    }
+
+    updateChecklistProgressUI(cardId, items || []);
 }
 
 /**
  * Обновить UI прогресса чеклиста на карточке
  */
-function updateChecklistProgressUI(cardId, completed, total) {
+function updateChecklistProgressUI(cardId, items) {
     const progressContainer = document.getElementById(`checklist-progress-${cardId}`);
     if (!progressContainer) return;
 
@@ -922,16 +927,70 @@ function updateChecklistProgressUI(cardId, completed, total) {
     progressContainer.innerHTML = '';
 
     // Не показывать если нет пунктов
-    if (total === 0) return;
+    if (!items || items.length === 0) return;
 
-    const progressDiv = document.createElement('div');
-    progressDiv.className = 'card-checklist-progress';
+    const checklistWrapper = document.createElement('div');
+    checklistWrapper.className = 'card-checklist-wrapper';
+
+    // Заголовок с прогрессом
+    const completed = items.filter(item => item.is_completed).length;
+    const total = items.length;
+
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'card-checklist-header';
     if (completed === total) {
-        progressDiv.classList.add('completed');
+        headerDiv.classList.add('completed');
     }
-    progressDiv.textContent = `✓ ${completed}/${total}`;
+    headerDiv.textContent = `✓ Чеклист: ${completed}/${total}`;
+    checklistWrapper.appendChild(headerDiv);
 
-    progressContainer.appendChild(progressDiv);
+    // Список пунктов
+    const listDiv = document.createElement('div');
+    listDiv.className = 'card-checklist-items';
+
+    // Показать только первые 3 пункта на карточке
+    const visibleItems = items.slice(0, 3);
+
+    visibleItems.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'card-checklist-item';
+        if (item.is_completed) {
+            itemDiv.classList.add('completed');
+        }
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = item.is_completed;
+        checkbox.className = 'checklist-checkbox';
+
+        // Переключение статуса при клике
+        checkbox.onclick = async (e) => {
+            e.stopPropagation(); // Предотвратить открытие модального окна
+            const newStatus = e.target.checked;
+            await ChecklistService.toggleChecklistItem(item.id, newStatus);
+            // UI обновится через Realtime подписку
+        };
+
+        const textSpan = document.createElement('span');
+        textSpan.className = 'checklist-item-text';
+        textSpan.textContent = item.text;
+
+        itemDiv.appendChild(checkbox);
+        itemDiv.appendChild(textSpan);
+        listDiv.appendChild(itemDiv);
+    });
+
+    checklistWrapper.appendChild(listDiv);
+
+    // Показать сколько еще пунктов, если их больше 3
+    if (items.length > 3) {
+        const moreDiv = document.createElement('div');
+        moreDiv.className = 'card-checklist-more';
+        moreDiv.textContent = `...и еще ${items.length - 3}`;
+        checklistWrapper.appendChild(moreDiv);
+    }
+
+    progressContainer.appendChild(checklistWrapper);
 }
 
 /**
