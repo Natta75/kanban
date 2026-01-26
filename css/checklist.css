@@ -74,6 +74,22 @@
     color: #333;
     word-break: break-word;
     transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.checklist-item-text:hover {
+    color: #007bff;
+}
+
+/* Поле редактирования пункта */
+.checklist-edit-input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 2px solid #007bff;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
 /* Зачёркнутый текст для выполненных */

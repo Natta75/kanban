@@ -173,6 +173,10 @@ const ChecklistComponent = {
         const textSpan = document.createElement('span');
         textSpan.className = 'checklist-item-text';
         textSpan.textContent = item.text;
+        textSpan.title = 'Двойной клик для редактирования';
+
+        // Добавить обработчик двойного клика для редактирования
+        textSpan.ondblclick = () => this.handleEditItem(item.id, textSpan, item.text);
 
         // Кнопка удаления
         const deleteBtn = document.createElement('button');
@@ -322,6 +326,92 @@ const ChecklistComponent = {
 
         // Обновить прогресс на карточке
         this.notifyProgressUpdate();
+    },
+
+    /**
+     * Обработка редактирования пункта
+     * @param {string} itemId - ID пункта
+     * @param {HTMLElement} textElement - Элемент с текстом
+     * @param {string} originalText - Оригинальный текст
+     */
+    handleEditItem(itemId, textElement, originalText) {
+        // Создать input для редактирования
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'checklist-edit-input';
+        input.value = originalText;
+        input.maxLength = 200;
+
+        // Заменить span на input
+        const parent = textElement.parentElement;
+        parent.replaceChild(input, textElement);
+        input.focus();
+        input.select();
+
+        // Функция сохранения
+        const saveEdit = async () => {
+            const newText = input.value.trim();
+
+            // Если текст не изменился или пустой - вернуть оригинальный span
+            if (!newText || newText === originalText) {
+                parent.replaceChild(textElement, input);
+                return;
+            }
+
+            // Валидация
+            const validation = ChecklistService.validateItemText(newText);
+            if (!validation.valid) {
+                alert(validation.error);
+                input.focus();
+                return;
+            }
+
+            // Для новой карточки - обновить локально
+            if (this.isNewCard) {
+                const item = this.tempItems.find(i => i.id === itemId);
+                if (item) {
+                    item.text = newText;
+                    this.items = this.tempItems;
+                    this.renderItems();
+                }
+                return;
+            }
+
+            // Для существующей карточки - сохранить в БД
+            const { data, error } = await ChecklistService.updateChecklistItem(itemId, { text: newText });
+
+            if (error) {
+                alert('Не удалось обновить пункт: ' + error.message);
+                parent.replaceChild(textElement, input);
+                return;
+            }
+
+            // Обновить текст в локальном списке
+            const item = this.items.find(i => i.id === itemId);
+            if (item) {
+                item.text = newText;
+            }
+
+            // Перерендерить список
+            this.renderItems();
+        };
+
+        // Функция отмены
+        const cancelEdit = () => {
+            parent.replaceChild(textElement, input);
+        };
+
+        // Обработчики событий
+        input.onblur = saveEdit;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveEdit();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelEdit();
+            }
+        };
     },
 
     /**
