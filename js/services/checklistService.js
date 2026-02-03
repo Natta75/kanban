@@ -57,15 +57,15 @@ const ChecklistService = {
                 };
             }
 
-            // Получить максимальную позицию
+            // Получить минимальную позицию для добавления нового пункта в начало
             const { data: items } = await client
                 .from('kanban_checklist_items')
                 .select('position')
                 .eq('card_id', cardId)
-                .order('position', { ascending: false })
+                .order('position', { ascending: true })
                 .limit(1);
 
-            const maxPosition = items && items.length > 0 ? items[0].position : -1;
+            const minPosition = items && items.length > 0 ? items[0].position : 1;
 
             const { data, error } = await client
                 .from('kanban_checklist_items')
@@ -74,7 +74,7 @@ const ChecklistService = {
                         card_id: cardId,
                         text: text.trim(),
                         is_completed: false,
-                        position: maxPosition + 1
+                        position: minPosition - 1
                     }
                 ])
                 .select()
