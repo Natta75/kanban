@@ -27,6 +27,12 @@ const COLUMNS = {
 
 const COLUMN_ORDER = [COLUMNS.TODO, COLUMNS.IN_PROGRESS, COLUMNS.DONE];
 
+// Состояние раскрытых чеклистов
+const expandedChecklists = {
+    expanded: new Set(), // Set cardId для раскрытых чеклистов
+    timers: {} // { cardId: timeoutId } для автосворачивания
+};
+
 // ============================================================
 // UTILITY FUNCTIONS
 // ============================================================
@@ -917,6 +923,53 @@ async function loadChecklistProgress(cardId) {
 }
 
 /**
+ * Раскрыть чеклист карточки
+ */
+function expandChecklist(cardId) {
+    expandedChecklists.expanded.add(cardId);
+
+    // Очистить существующий таймер, если есть
+    if (expandedChecklists.timers[cardId]) {
+        clearTimeout(expandedChecklists.timers[cardId]);
+    }
+
+    // Установить таймер автосворачивания на 3 минуты
+    expandedChecklists.timers[cardId] = setTimeout(() => {
+        collapseChecklist(cardId);
+    }, 3 * 60 * 1000); // 3 минуты
+
+    // Перерисовать чеклист
+    loadChecklistProgress(cardId);
+}
+
+/**
+ * Свернуть чеклист карточки
+ */
+function collapseChecklist(cardId) {
+    expandedChecklists.expanded.delete(cardId);
+
+    // Очистить таймер
+    if (expandedChecklists.timers[cardId]) {
+        clearTimeout(expandedChecklists.timers[cardId]);
+        delete expandedChecklists.timers[cardId];
+    }
+
+    // Перерисовать чеклист
+    loadChecklistProgress(cardId);
+}
+
+/**
+ * Переключить состояние раскрытия чеклиста
+ */
+function toggleChecklistExpansion(cardId) {
+    if (expandedChecklists.expanded.has(cardId)) {
+        collapseChecklist(cardId);
+    } else {
+        expandChecklist(cardId);
+    }
+}
+
+/**
  * Обновить UI прогресса чеклиста на карточке
  */
 function updateChecklistProgressUI(cardId, items) {
@@ -931,6 +984,9 @@ function updateChecklistProgressUI(cardId, items) {
 
     const checklistWrapper = document.createElement('div');
     checklistWrapper.className = 'card-checklist-wrapper';
+
+    // Проверить, раскрыт ли чеклист
+    const isExpanded = expandedChecklists.expanded.has(cardId);
 
     // Заголовок с прогрессом
     const completed = items.filter(item => item.is_completed).length;
@@ -948,8 +1004,13 @@ function updateChecklistProgressUI(cardId, items) {
     const listDiv = document.createElement('div');
     listDiv.className = 'card-checklist-items';
 
-    // Показать только первые 3 пункта на карточке
-    const visibleItems = items.slice(0, 3);
+    // Если раскрыто - показать все пункты с ограничением высоты
+    if (isExpanded) {
+        listDiv.classList.add('expanded');
+    }
+
+    // Определить какие пункты показывать
+    const visibleItems = isExpanded ? items : items.slice(0, 3);
 
     visibleItems.forEach(item => {
         const itemDiv = document.createElement('div');
@@ -982,12 +1043,25 @@ function updateChecklistProgressUI(cardId, items) {
 
     checklistWrapper.appendChild(listDiv);
 
-    // Показать сколько еще пунктов, если их больше 3
+    // Кнопка "Показать все" или "Свернуть"
     if (items.length > 3) {
-        const moreDiv = document.createElement('div');
-        moreDiv.className = 'card-checklist-more';
-        moreDiv.textContent = `...и еще ${items.length - 3}`;
-        checklistWrapper.appendChild(moreDiv);
+        const toggleDiv = document.createElement('div');
+        toggleDiv.className = 'card-checklist-toggle';
+
+        if (isExpanded) {
+            toggleDiv.textContent = '▲ Свернуть';
+            toggleDiv.classList.add('collapse');
+        } else {
+            toggleDiv.textContent = `▼ Показать все (${items.length})`;
+            toggleDiv.classList.add('expand');
+        }
+
+        toggleDiv.onclick = (e) => {
+            e.stopPropagation(); // Предотвратить открытие модального окна
+            toggleChecklistExpansion(cardId);
+        };
+
+        checklistWrapper.appendChild(toggleDiv);
     }
 
     progressContainer.appendChild(checklistWrapper);

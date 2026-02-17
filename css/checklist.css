@@ -216,6 +216,32 @@
     gap: 0.4rem;
 }
 
+/* Раскрытое состояние - с ограничением высоты и прокруткой */
+.card-checklist-items.expanded {
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+/* Стилизация скроллбара для раскрытого списка */
+.card-checklist-items.expanded::-webkit-scrollbar {
+    width: 6px;
+}
+
+.card-checklist-items.expanded::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.card-checklist-items.expanded::-webkit-scrollbar-thumb {
+    background: #bbb;
+    border-radius: 3px;
+}
+
+.card-checklist-items.expanded::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
 /* Пункт чеклиста на карточке (компактный) */
 .card-checklist-item {
     display: flex;
@@ -266,13 +292,42 @@
     opacity: 0.7;
 }
 
-/* Индикатор "еще пунктов" */
-.card-checklist-more {
-    margin-top: 0.3rem;
+/* Кнопка раскрытия/сворачивания чеклиста */
+.card-checklist-toggle {
+    margin-top: 0.5rem;
+    padding: 0.4rem;
     font-size: 0.8rem;
-    color: #999;
+    color: #0066cc;
     text-align: center;
-    font-style: italic;
+    cursor: pointer;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.card-checklist-toggle:hover {
+    background-color: #f0f7ff;
+    border-color: #0066cc;
+    color: #0052a3;
+}
+
+.card-checklist-toggle:active {
+    transform: scale(0.98);
+}
+
+.card-checklist-toggle.expand {
+    font-weight: 500;
+}
+
+.card-checklist-toggle.collapse {
+    font-weight: 600;
+    color: #666;
+}
+
+.card-checklist-toggle.collapse:hover {
+    color: #333;
 }
 
 /* Адаптивность для мобильных устройств */
